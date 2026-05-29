@@ -107,7 +107,7 @@ class SummaryWidget(Static):
         denom = u.input + u.cache_read
         cache_pct = (u.cache_read / denom * 100) if denom > 0 else 0.0
         t = Text()
-        t.append('claude-token-burn', style='bold #f5c040')
+        t.append('token-burn', style='bold #f5c040')
         t.append(f'  {period_label}\n', style='#707070')
         t.append(f'{format_tokens(u.total):>8} total', style='bold #d0d0d0')
         t.append(f'   {result.totals.turn_count:,} turns', style='#a0a0a0')
@@ -219,7 +219,7 @@ PanelWidget.magenta { border: solid #cc44cc; }
 
 
 class TokenBurnApp(App[None]):
-    TITLE = 'claude-token-burn'
+    TITLE = 'token-burn'
     CSS = _CSS
     BINDINGS = [
         Binding('left', 'period_prev', 'Prev'),
