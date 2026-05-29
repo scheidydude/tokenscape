@@ -91,6 +91,13 @@ class TokenBurnApp(App[None]):
             with Vertical():
                 yield Label('MCP Servers')
                 yield AggTable(id='mcp')
+        with Horizontal():
+            with Vertical():
+                yield Label('Activity')
+                yield AggTable(id='activity')
+            with Vertical():
+                yield Label('Shell Commands')
+                yield AggTable(id='shell')
         with Vertical():
             yield Label('By Day')
             yield AggTable(id='days')
@@ -120,6 +127,8 @@ class TokenBurnApp(App[None]):
         self.query_one('#models', AggTable).populate('Models', result.by_model)
         self.query_one('#tools', AggTable).populate('Tools', result.by_tool)
         self.query_one('#mcp', AggTable).populate('MCP', result.by_mcp_server)
+        self.query_one('#activity', AggTable).populate('Activity', result.by_activity)
+        self.query_one('#shell', AggTable).populate('Shell Commands', result.by_shell_cmd)
         self.query_one('#days', AggTable).populate('Days', result.by_day, sort_by_total=False)
 
     def action_set_period_today(self) -> None:

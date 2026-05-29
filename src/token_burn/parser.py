@@ -26,14 +26,21 @@ def _project_name(cwd: str) -> str:
     return Path(cwd).name or cwd
 
 
-def _extract_tools(content: list[object]) -> list[str]:
+def _extract_tools(content: list[object]) -> tuple[list[str], list[str]]:
     tools: list[str] = []
+    bash_inputs: list[str] = []
     for block in content:
         if isinstance(block, dict) and block.get('type') == 'tool_use':
             name = block.get('name', '')
             if isinstance(name, str) and name:
                 tools.append(name)
-    return tools
+                if name == 'Bash':
+                    inp = block.get('input', {})
+                    if isinstance(inp, dict):
+                        cmd = inp.get('command', '')
+                        if isinstance(cmd, str) and cmd.strip():
+                            bash_inputs.append(cmd.strip())
+    return tools, bash_inputs
 
 
 def _extract_user_text(content: list[object]) -> str:
@@ -144,7 +151,7 @@ def stream_turns(
 
             model_raw = str(msg.get('model', '') or '')
             content = msg.get('content', [])
-            tools = _extract_tools(content) if isinstance(content, list) else []
+            tools, bash_inputs = _extract_tools(content) if isinstance(content, list) else ([], [])
 
             cwd_raw = str(entry.get('cwd', '') or '')
 
@@ -155,6 +162,7 @@ def stream_turns(
                 model=display_name(model_raw),
                 usage=usage,
                 tools_used=tools,
+                bash_inputs=bash_inputs,
                 user_text=pending_user_text,
                 cwd=cwd_raw,
                 project=_project_name(cwd_raw),

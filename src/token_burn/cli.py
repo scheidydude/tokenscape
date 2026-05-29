@@ -156,6 +156,10 @@ def report(
             _print_agg_table('By Tool', result.by_tool)
         if result.by_mcp_server:
             _print_agg_table('By MCP Server', result.by_mcp_server)
+        if result.by_activity:
+            _print_agg_table('By Activity', result.by_activity)
+        if result.by_shell_cmd:
+            _print_agg_table('By Shell Command', result.by_shell_cmd)
 
     if refresh:
         while True:

@@ -31,6 +31,7 @@ class Turn:
     model: str
     usage: TokenUsage
     tools_used: list[str] = field(default_factory=list)
+    bash_inputs: list[str] = field(default_factory=list)
     user_text: str = ''
     cwd: str = ''
     project: str = ''
