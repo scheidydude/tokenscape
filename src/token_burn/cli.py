@@ -9,7 +9,7 @@ from rich.console import Console
 from rich.table import Table
 
 from .aggregate import AggregateResult, aggregate_turns
-from .parser import stream_turns
+from .parser import list_projects, stream_turns
 from .types import Aggregate, TokenUsage
 
 app = typer.Typer(no_args_is_help=False, invoke_without_command=True)
@@ -203,6 +203,118 @@ def status(
             f'Today: {today_result.totals.usage.total:,} tokens ({today_result.totals.turn_count} turns) | '
             f'Month: {month_result.totals.usage.total:,} tokens ({month_result.totals.turn_count} turns)'
         )
+
+
+def _print_project_list(projects: list[tuple[str, datetime]]) -> None:
+    for i, (name, last_active) in enumerate(projects, 1):
+        console.print(f'  [bold cyan]{i:2}.[/bold cyan] {name:<40} [dim]{last_active.strftime("%Y-%m-%d")}[/dim]')
+
+
+def _prompt_project_selection(projects: list[tuple[str, datetime]]) -> str | None:
+    _print_project_list(projects)
+    console.print()
+    while True:
+        raw = console.input('[bold]Select # or type search term (q to quit):[/bold] ').strip()
+        if raw.lower() == 'q':
+            return None
+        if raw.isdigit():
+            idx = int(raw) - 1
+            if 0 <= idx < len(projects):
+                return projects[idx][0]
+            console.print(f'[red]Enter a number between 1 and {len(projects)}[/red]')
+            continue
+        matches = [(p, d) for p, d in projects if raw.lower() in p.lower()]
+        if len(matches) == 1:
+            return matches[0][0]
+        if matches:
+            console.print(f'[yellow]{len(matches)} matches:[/yellow]')
+            projects = matches
+            _print_project_list(projects)
+        else:
+            console.print(f'[red]No match for "{raw}"[/red]')
+
+
+def _print_project_report(
+    name: str,
+    period: str,
+    from_dt: datetime,
+    to_dt: datetime,
+    result: AggregateResult,
+) -> None:
+    u = result.totals.usage
+    console.print(f'\n[bold cyan]{name}[/bold cyan]  [dim]{period}  {from_dt.date()} to {to_dt.date()}[/dim]\n')
+    console.print(
+        f'Total: [bold]{u.total:,}[/bold]'
+        f'  Input: {u.input:,}'
+        f'  Output: {u.output:,}'
+        f'  Cache read: {u.cache_read:,}'
+        f'  Cache write: {u.cache_write:,}'
+        f'  Turns: {result.totals.turn_count:,}\n'
+    )
+    if result.by_day:
+        _print_agg_table('By Day', result.by_day, sort_by_total=False)
+    if result.by_activity:
+        _print_agg_table('By Activity', result.by_activity)
+    if result.by_tool:
+        _print_agg_table('By Tool', result.by_tool)
+    if result.by_shell_cmd:
+        _print_agg_table('By Shell Command', result.by_shell_cmd)
+    if result.by_mcp_server:
+        _print_agg_table('By MCP Server', result.by_mcp_server)
+
+
+@app.command()
+def project(
+    name: Annotated[str | None, typer.Argument(help='Project name or search term')] = None,
+    period: Annotated[str, typer.Option('-p', '--period', help='today|7days|30days|month')] = '30days',
+    from_date: Annotated[str | None, typer.Option('--from', help='YYYY-MM-DD')] = None,
+    to_date: Annotated[str | None, typer.Option('--to', help='YYYY-MM-DD')] = None,
+) -> None:
+    '''Token breakdown for a specific project: by day, activity, and tool.'''
+    projects = list_projects()
+    if not projects:
+        console.print('[red]No projects found.[/red]')
+        raise typer.Exit(1)
+
+    selected: str | None = None
+
+    if name:
+        matches = [(p, d) for p, d in projects if name.lower() in p.lower()]
+        if len(matches) == 1:
+            selected = matches[0][0]
+        elif len(matches) > 1:
+            console.print(f'[yellow]Multiple matches for "{name}":[/yellow]\n')
+            selected = _prompt_project_selection(matches)
+        else:
+            console.print(f'[yellow]No match for "{name}". Recent projects:[/yellow]\n')
+            selected = _prompt_project_selection(projects)
+    else:
+        console.print('[bold]Recent projects:[/bold]\n')
+        selected = _prompt_project_selection(projects)
+
+    if not selected:
+        return
+
+    if from_date and to_date:
+        from_dt = datetime.fromisoformat(from_date).replace(tzinfo=timezone.utc)
+        to_dt = datetime.fromisoformat(to_date).replace(tzinfo=timezone.utc)
+    elif period == 'today':
+        from_dt, to_dt = _today_range()
+    elif period == 'month':
+        from_dt, to_dt = _month_range()
+    elif period == '30days':
+        from_dt, to_dt = _days_range(30)
+    else:
+        from_dt, to_dt = _days_range(7)
+
+    turns = (t for t in stream_turns(from_dt=from_dt, to_dt=to_dt) if t.project == selected)
+    result = aggregate_turns(turns)
+
+    if result.totals.turn_count == 0:
+        console.print(f'[yellow]No activity for "{selected}" in this period.[/yellow]')
+        return
+
+    _print_project_report(selected, period, from_dt, to_dt, result)
 
 
 @app.command()

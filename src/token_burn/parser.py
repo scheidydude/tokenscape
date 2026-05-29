@@ -69,6 +69,35 @@ def _stream_jsonl(path: Path) -> Iterator[dict[str, object]]:
                 continue
 
 
+def list_projects() -> list[tuple[str, datetime]]:
+    '''Return (project_name, last_modified) sorted most-recent first.'''
+    seen: dict[str, datetime] = {}
+    for path in _iter_session_files():
+        try:
+            mtime = datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc)
+        except OSError:
+            continue
+        cwd = ''
+        try:
+            with path.open(encoding='utf-8', errors='replace') as fh:
+                for line in fh:
+                    try:
+                        obj = json.loads(line.strip())
+                        if isinstance(obj, dict) and obj.get('cwd'):
+                            cwd = str(obj['cwd'])
+                            break
+                    except json.JSONDecodeError:
+                        continue
+        except OSError:
+            continue
+        if not cwd:
+            continue
+        name = _project_name(cwd)
+        if name not in seen or mtime > seen[name]:
+            seen[name] = mtime
+    return sorted(seen.items(), key=lambda x: x[1], reverse=True)
+
+
 def _iter_session_files() -> Iterator[Path]:
     projects = claude_projects_dir()
     if projects.exists():
