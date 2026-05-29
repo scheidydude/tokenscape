@@ -5,6 +5,7 @@ from collections import defaultdict
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 
+from .classifier import classify
 from .types import Aggregate, TokenUsage, Turn
 
 _MCP_RE = re.compile(r'^mcp__([^_]+)__')
@@ -25,6 +26,7 @@ class AggregateResult:
     by_tool: dict[str, Aggregate] = field(default_factory=lambda: defaultdict(Aggregate))
     by_shell_cmd: dict[str, Aggregate] = field(default_factory=lambda: defaultdict(Aggregate))
     by_mcp_server: dict[str, Aggregate] = field(default_factory=lambda: defaultdict(Aggregate))
+    by_activity: dict[str, Aggregate] = field(default_factory=lambda: defaultdict(Aggregate))
     totals: Aggregate = field(default_factory=Aggregate)
 
 
@@ -58,5 +60,13 @@ def aggregate_turns(turns: Iterable[Turn]) -> AggregateResult:
                 _accumulate(result.by_mcp_server[m.group(1)], turn.usage)
             elif tool_name in _SHELL_CORE_TOOLS or not tool_name.startswith('mcp__'):
                 _accumulate(result.by_tool[tool_name], turn.usage)
+
+        for cmd in turn.bash_inputs:
+            first = cmd.split()[0] if cmd.strip() else None
+            if first:
+                _accumulate(result.by_shell_cmd[first], turn.usage)
+
+        activity = classify(turn, turn.bash_inputs).value
+        _accumulate(result.by_activity[activity], turn.usage)
 
     return result
