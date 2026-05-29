@@ -1,44 +1,44 @@
-# claude-token-burn
+# token-burn
 
-CLI and TUI for tracking Claude Code token usage. Reads session transcripts directly from `~/.claude/projects/` — no API keys, no proxy, no wrapper.
+CLI and TUI for tracking AI token usage and cost. Currently supports **Claude Code only** — reads session transcripts directly from `~/.claude/projects/` — no API keys, no proxy, no wrapper.
 
 ## Install
 
 ```bash
-pipx install claude-token-burn
+pipx install token-burn
 ```
 
 Zero-install run:
 
 ```bash
-uvx claude-token-burn
+uvx token-burn
 ```
 
 ## Usage
 
 ```bash
-claude-token-burn              # interactive TUI dashboard (default 7-day window)
-claude-token-burn today        # today's tokens
-claude-token-burn month        # this month's tokens
-claude-token-burn report -p 30days
-claude-token-burn report --from 2026-05-01 --to 2026-05-29
-claude-token-burn report --refresh 60     # auto-refresh every 60s
-claude-token-burn status                  # one-liner: today + month
-claude-token-burn status --format json
-claude-token-burn project                 # drill-down by project (interactive)
-claude-token-burn project token-burn      # drill-down for a specific project
-claude-token-burn export                  # CSV export (today / 7d / 30d)
-claude-token-burn export -f json
+token-burn              # interactive TUI dashboard (default 7-day window)
+token-burn today        # today's tokens
+token-burn month        # this month's tokens
+token-burn report -p 30days
+token-burn report --from 2026-05-01 --to 2026-05-29
+token-burn report --refresh 60     # auto-refresh every 60s
+token-burn status                  # one-liner: today + month
+token-burn status --format json
+token-burn project                 # drill-down by project (interactive)
+token-burn project token-burn      # drill-down for a specific project
+token-burn export                  # CSV export (today / 7d / 30d)
+token-burn export -f json
 ```
 
 ## TUI
 
-Launch with `claude-token-burn` (no arguments).
+Launch with `token-burn` (no arguments).
 
 ```
   Today    [ 7 Days ]   30 Days    Month
 
- claude-token-burn  7 Days
+ token-burn  7 Days
     92.4M total   1,330 turns   96.1% cache hit
     5.9k in   896.6k out   89.3M cached   2.3M written
 
@@ -70,14 +70,14 @@ Launch with `claude-token-burn` (no arguments).
 ## Project drill-down
 
 ```bash
-claude-token-burn project
+token-burn project
 ```
 
 Lists recent projects sorted by last active date. Enter a number to select or type a search term to filter. Displays token usage broken down by day, activity, tool, shell command, and MCP server for the selected project.
 
 ```bash
-claude-token-burn project orchid -p 7days
-claude-token-burn project myapp --from 2026-05-01 --to 2026-05-15
+token-burn project orchid -p 7days
+token-burn project myapp --from 2026-05-01 --to 2026-05-15
 ```
 
 ## Token breakdowns
@@ -124,12 +124,12 @@ Turns are deduplicated by `message.id`. Date filtering is per-entry timestamp, s
 ## Development
 
 ```bash
-git clone https://github.com/agentseal/claude-token-burn
-cd claude-token-burn
+git clone https://github.com/agentseal/token-burn
+cd token-burn
 uv venv .venv --python 3.11
 uv pip install -e .
 pytest
-claude-token-burn status
+token-burn status
 ```
 
 Requires Python 3.11+.

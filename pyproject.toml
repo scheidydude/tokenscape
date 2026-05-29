@@ -3,9 +3,9 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "claude-token-burn"
+name = "token-burn"
 version = "0.1.0"
-description = "Claude Code token usage CLI and TUI"
+description = "AI token usage CLI and TUI (Claude Code)"
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.11"
@@ -16,7 +16,7 @@ dependencies = [
 ]
 
 [project.scripts]
-claude-token-burn = "token_burn.cli:app"
+token-burn = "token_burn.cli:app"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/token_burn"]
