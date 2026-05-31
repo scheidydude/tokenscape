@@ -247,6 +247,7 @@ SummaryWidget {
 
 #left-col, #right-col {
     width: 1fr;
+    height: auto;
 }
 
 #bottom-row {
