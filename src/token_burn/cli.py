@@ -620,6 +620,53 @@ def semantic(
         console.print()
 
 
+@app.command('full-report')
+def full_report(
+    period: Annotated[str, typer.Option('-p', '--period', help='today|7days|30days|90days|month')] = '30days',
+    from_date: Annotated[str | None, typer.Option('--from', help='YYYY-MM-DD')] = None,
+    to_date: Annotated[str | None, typer.Option('--to', help='YYYY-MM-DD')] = None,
+    top: Annotated[int, typer.Option('--top', help='Max rows per table section')] = 8,
+    use_labels: Annotated[bool, typer.Option('--labels', help='Generate cluster labels via LLM (requires ~/.config/token-burn/config.toml)')] = False,
+    output: Annotated[str | None, typer.Option('--output', '-o', help='Write to file instead of stdout')] = None,
+) -> None:
+    '''Generate a full markdown report covering all analysis commands.'''
+    import sys
+
+    from .aggregate import aggregate_turns
+    from .parser import stream_sessions
+    from .report import generate
+
+    labels_config: dict[str, str] | None = None
+    if use_labels:
+        from .config import load_labels_config
+        labels_config = load_labels_config()
+        if labels_config is None:
+            console.print('[yellow]--labels: no config found. Create ~/.config/token-burn/config.toml with a [labels] section.[/yellow]', file=sys.stderr)
+
+    from_dt, to_dt = _resolve_period(period, from_date, to_date)
+    turns = list(stream_turns(from_dt=from_dt, to_dt=to_dt))
+    sessions = list(stream_sessions(from_dt=from_dt, to_dt=to_dt))
+    result = aggregate_turns(iter(turns))
+
+    md = generate(
+        turns=turns,
+        sessions=sessions,
+        result=result,
+        from_dt=from_dt,
+        to_dt=to_dt,
+        period_label=period,
+        top=top,
+        labels_config=labels_config,
+    )
+
+    if output:
+        from pathlib import Path
+        Path(output).write_text(md)
+        Console(stderr=True).print(f'[green]Report written to {output}[/green]')
+    else:
+        print(md, end='')
+
+
 @app.command()
 def export(
     fmt: Annotated[str, typer.Option('-f', '--format', help='csv|json')] = 'csv',
