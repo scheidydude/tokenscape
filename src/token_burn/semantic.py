@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import math
+import urllib.request
 from collections import defaultdict
 from pathlib import Path
 
@@ -10,6 +12,7 @@ import numpy as np
 from .types import Turn
 
 _CACHE_PATH = Path.home() / '.cache' / 'token-burn' / 'embeddings.npz'
+_LABEL_CACHE_PATH = Path.home() / '.cache' / 'token-burn' / 'labels.json'
 _MODEL = 'BAAI/bge-small-en-v1.5'
 
 
@@ -38,6 +41,62 @@ def _save_cache(cache: dict[str, np.ndarray]) -> None:
     hashes = np.array(list(cache.keys()))
     embeddings = np.array(list(cache.values()), dtype=np.float32)
     np.savez(str(_CACHE_PATH), hashes=hashes, embeddings=embeddings)
+
+
+def _label_cache_key(examples: list[str]) -> str:
+    return hashlib.sha256('|'.join(sorted(examples)).encode()).hexdigest()
+
+
+def _load_label_cache() -> dict[str, str]:
+    if not _LABEL_CACHE_PATH.exists():
+        return {}
+    try:
+        return json.loads(_LABEL_CACHE_PATH.read_text())
+    except Exception:
+        return {}
+
+
+def _save_label_cache(cache: dict[str, str]) -> None:
+    _LABEL_CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    _LABEL_CACHE_PATH.write_text(json.dumps(cache, indent=2))
+
+
+def label_cluster(examples: list[str], config: dict[str, str]) -> str | None:
+    cache = _load_label_cache()
+    key = _label_cache_key(examples)
+    if key in cache:
+        return cache[key]
+
+    prompt = (
+        'These are example prompts from a cluster of similar user requests:\n'
+        + '\n'.join(f'- {e}' for e in examples)
+        + '\n\nRespond with a 2-3 word label for this cluster. Just the label, nothing else.'
+    )
+    payload = json.dumps({
+        'model': config['model'],
+        'messages': [{'role': 'user', 'content': prompt}],
+        'max_tokens': 20,
+        'temperature': 0.0,
+    }).encode()
+
+    try:
+        req = urllib.request.Request(
+            f"{config['base_url']}/chat/completions",
+            data=payload,
+            headers={
+                'Content-Type': 'application/json',
+                'Authorization': f"Bearer {config['api_key']}",
+            },
+            method='POST',
+        )
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            data = json.loads(resp.read())
+        label = data['choices'][0]['message']['content'].strip()
+        cache[key] = label
+        _save_label_cache(cache)
+        return label
+    except Exception:
+        return None
 
 
 def embed_prompts(texts: list[str]) -> np.ndarray:

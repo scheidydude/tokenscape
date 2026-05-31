@@ -132,6 +132,35 @@ class GrowthSignal:
     project: str = ''
 
 
+@dataclass
+class ModelActivityStats:
+    model: str
+    total_turns: int
+    total_tokens: int
+    by_activity: dict[str, int]
+
+    @property
+    def avg_tokens(self) -> float:
+        return self.total_tokens / self.total_turns if self.total_turns else 0.0
+
+    def top_activities(self, n: int = 3) -> list[tuple[str, float]]:
+        total = sum(self.by_activity.values()) or 1
+        return sorted(
+            [(a, c / total) for a, c in self.by_activity.items()],
+            key=lambda x: -x[1],
+        )[:n]
+
+
+@dataclass
+class ModelSignal:
+    model: str
+    kind: str
+    description: str
+
+
+_CHEAP_ACTIVITIES = frozenset({'Conversation', 'Git Ops', 'General', 'Delegation'})
+
+
 def shell_automation_candidates(
     turns: Iterable[Turn],
     min_count: int = 3,
@@ -259,3 +288,54 @@ def growth_signals(turns: Iterable[Turn]) -> list[GrowthSignal]:
             ))
 
     return sorted(signals, key=lambda s: s.value, reverse=True)
+
+
+def model_activity_breakdown(turns: Iterable[Turn]) -> list[ModelActivityStats]:
+    by_model: defaultdict[str, list[Turn]] = defaultdict(list)
+    for turn in turns:
+        by_model[turn.model].append(turn)
+
+    result = []
+    for model, model_turns in by_model.items():
+        by_activity: Counter[str] = Counter()
+        total_tokens = 0
+        for t in model_turns:
+            by_activity[classify(t, t.bash_inputs).value] += 1
+            total_tokens += t.usage.total
+        result.append(ModelActivityStats(
+            model=model,
+            total_turns=len(model_turns),
+            total_tokens=total_tokens,
+            by_activity=dict(by_activity),
+        ))
+
+    return sorted(result, key=lambda s: -s.total_tokens)
+
+
+def project_model_breakdown(turns: Iterable[Turn]) -> dict[str, list[ModelActivityStats]]:
+    by_project: defaultdict[str, list[Turn]] = defaultdict(list)
+    for turn in turns:
+        by_project[turn.project].append(turn)
+    return {
+        proj: model_activity_breakdown(proj_turns)
+        for proj, proj_turns in sorted(by_project.items())
+    }
+
+
+def model_efficiency_signals(stats: list[ModelActivityStats]) -> list[ModelSignal]:
+    signals = []
+    for s in stats:
+        if s.total_turns < 5:
+            continue
+        cheap_turns = sum(c for a, c in s.by_activity.items() if a in _CHEAP_ACTIVITIES)
+        cheap_pct = cheap_turns / s.total_turns
+        if cheap_pct > 0.30:
+            cheap_names = ', '.join(
+                sorted(a for a in _CHEAP_ACTIVITIES if s.by_activity.get(a, 0) > 0)
+            )
+            signals.append(ModelSignal(
+                model=s.model,
+                kind='cheap activity overhead',
+                description=f'{cheap_pct:.0%} of turns in low-value activities ({cheap_names})',
+            ))
+    return signals
