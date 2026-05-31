@@ -620,6 +620,27 @@ def semantic(
         console.print()
 
 
+@app.command('bundle')
+def bundle(
+    output: Annotated[str | None, typer.Option('--output', '-o', help='Output zip path (default: token-burn-bundle-YYYYMMDD.zip)')] = None,
+) -> None:
+    '''Create a zip bundle of session data to share with teammates.'''
+    from pathlib import Path
+
+    from .bundle import create
+
+    console.print('[yellow]Warning: the bundle contains your full prompt and session history.[/yellow]')
+    console.print('[yellow]Only share with people you trust.[/yellow]\n')
+
+    out = Path(output) if output else None
+    path, file_count, size_bytes = create(out)
+    size_kb = size_bytes / 1024
+    size_str = f'{size_bytes / 1_048_576:.1f} MB' if size_bytes >= 1_048_576 else f'{size_kb:.0f} KB'
+    console.print(f'[green]Created {path.name}[/green]  {file_count} session files  {size_str}')
+    console.print(f'\nTeammates can analyze it with:')
+    console.print(f'  token-burn full-report --source {path.name}')
+
+
 @app.command('full-report')
 def full_report(
     period: Annotated[str, typer.Option('-p', '--period', help='today|7days|30days|90days|month')] = '30days',
@@ -628,11 +649,13 @@ def full_report(
     top: Annotated[int, typer.Option('--top', help='Max rows per table section')] = 8,
     use_labels: Annotated[bool, typer.Option('--labels', help='Generate cluster labels via LLM (requires ~/.config/token-burn/config.toml)')] = False,
     output: Annotated[str | None, typer.Option('--output', '-o', help='Write to file instead of stdout')] = None,
+    source: Annotated[str | None, typer.Option('--source', help='Analyze a bundle zip or directory instead of ~/.claude')] = None,
 ) -> None:
     '''Generate a full markdown report covering all analysis commands.'''
     import sys
 
     from .aggregate import aggregate_turns
+    from .bundle import source_context
     from .parser import stream_sessions
     from .report import generate
 
@@ -644,20 +667,27 @@ def full_report(
             console.print('[yellow]--labels: no config found. Create ~/.config/token-burn/config.toml with a [labels] section.[/yellow]', file=sys.stderr)
 
     from_dt, to_dt = _resolve_period(period, from_date, to_date)
-    turns = list(stream_turns(from_dt=from_dt, to_dt=to_dt))
-    sessions = list(stream_sessions(from_dt=from_dt, to_dt=to_dt))
-    result = aggregate_turns(iter(turns))
 
-    md = generate(
-        turns=turns,
-        sessions=sessions,
-        result=result,
-        from_dt=from_dt,
-        to_dt=to_dt,
-        period_label=period,
-        top=top,
-        labels_config=labels_config,
-    )
+    def _run() -> str:
+        turns = list(stream_turns(from_dt=from_dt, to_dt=to_dt))
+        sessions = list(stream_sessions(from_dt=from_dt, to_dt=to_dt))
+        result = aggregate_turns(iter(turns))
+        return generate(
+            turns=turns,
+            sessions=sessions,
+            result=result,
+            from_dt=from_dt,
+            to_dt=to_dt,
+            period_label=period,
+            top=top,
+            labels_config=labels_config,
+        )
+
+    if source:
+        with source_context(source):
+            md = _run()
+    else:
+        md = _run()
 
     if output:
         from pathlib import Path

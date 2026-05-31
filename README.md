@@ -38,7 +38,9 @@ token-burn project token-burn      # drill-down for a specific project
 token-burn export                  # CSV export (today / 7d / 30d)
 token-burn export -f json
 
+token-burn bundle                  # create a zip of session data to share with teammates
 token-burn full-report             # full markdown report to stdout (all commands in one pass)
+token-burn full-report --source teammate-bundle-20260531.zip
 token-burn full-report --top 10 --output report.md
 token-burn patterns                # shell automation candidates + hottest files + user prompt patterns
 token-burn workflow                # activity transition sequences + session ramp time
@@ -229,6 +231,18 @@ token-burn full-report --output report.md     # write to file
 ```
 
 Runs all analysis in a single pass and emits a markdown document with sections for: summary, projects, workflow transitions + session ramp, growth signals, model efficiency + by-project model breakdown, patterns (shell commands, hottest files, prompt verbs, bigrams), and intent clusters if `[semantic]` is installed. Status/warning messages go to stderr so `token-burn full-report > report.md` works cleanly.
+
+**Sharing with teammates** — use `token-burn bundle` to create a zip of your session data, then teammates run `full-report --source` against it on their own machine. No server required.
+
+```bash
+# On your machine:
+token-burn bundle                    # → token-burn-bundle-20260531.zip
+
+# On a teammate's machine:
+token-burn full-report --source token-burn-bundle-20260531.zip --output report.md
+```
+
+The bundle contains only `.jsonl` session files — no credentials, settings, or other config. It does contain your full prompt history; only share with people you trust. For individual commands, point at the extracted directory via `CLAUDE_CONFIG_DIR=/path/to/extracted token-burn patterns`.
 
 ---
 
