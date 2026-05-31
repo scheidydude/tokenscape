@@ -8,6 +8,8 @@ from token_burn.patterns import (
     activity_transitions,
     file_edit_frequency,
     growth_signals,
+    model_activity_breakdown,
+    model_efficiency_signals,
     session_ramp_stats,
     shell_automation_candidates,
 )
@@ -140,3 +142,54 @@ def test_growth_signals_clean_project():
     code_turns = [_turn(tools=['Edit']) for _ in range(4)]
     signals = growth_signals(debug_turns + test_turns + code_turns)
     assert not any(s.kind == 'no_tests' for s in signals)
+
+
+def _turn_model(model: str, tools: list[str] = (), bash: list[str] = ()) -> Turn:
+    return Turn(
+        message_id='x',
+        timestamp=_TS,
+        model=model,
+        usage=_USAGE,
+        tools_used=list(tools),
+        bash_inputs=list(bash),
+        edited_files=[],
+        user_text='',
+        project='proj',
+        cwd='/proj',
+    )
+
+
+def test_model_activity_breakdown_groups_by_model():
+    turns = (
+        [_turn_model('Sonnet 4.6', tools=['Edit'])] * 4
+        + [_turn_model('Opus 4.7')] * 2
+    )
+    stats = model_activity_breakdown(turns)
+    models = [s.model for s in stats]
+    assert 'Sonnet 4.6' in models
+    assert 'Opus 4.7' in models
+
+
+def test_model_activity_breakdown_sorted_by_tokens():
+    turns = (
+        [_turn_model('Sonnet 4.6', tools=['Edit'])] * 6
+        + [_turn_model('Haiku 4.5')] * 2
+    )
+    stats = model_activity_breakdown(turns)
+    assert stats[0].model == 'Sonnet 4.6'
+
+
+def test_model_efficiency_signals_flags_cheap_overhead():
+    # 8 conversation turns (no tools) + 2 coding turns = 80% cheap
+    turns = [_turn_model('Opus 4.7')] * 8 + [_turn_model('Opus 4.7', tools=['Edit'])] * 2
+    stats = model_activity_breakdown(turns)
+    signals = model_efficiency_signals(stats)
+    assert any(sig.model == 'Opus 4.7' for sig in signals)
+
+
+def test_model_efficiency_signals_no_flag_for_coding_heavy():
+    # All coding turns — should not be flagged
+    turns = [_turn_model('Sonnet 4.6', tools=['Edit'])] * 10
+    stats = model_activity_breakdown(turns)
+    signals = model_efficiency_signals(stats)
+    assert not signals

@@ -41,6 +41,7 @@ token-burn export -f json
 token-burn patterns                # shell automation candidates + hottest files + user prompt patterns
 token-burn workflow                # activity transition sequences + session ramp time
 token-burn growth                  # per-project efficiency gaps
+token-burn models                  # model usage breakdown by activity + efficiency signals
 token-burn semantic                # intent clustering of user prompts (requires [semantic] extra)
 ```
 
@@ -111,6 +112,7 @@ Beyond token cost, these four commands answer: *what do you repeatedly ask Claud
 | `patterns` | What repeats at the mechanical level? | < 2s |
 | `workflow` | How do sessions actually flow? | < 2s |
 | `growth` | Which projects have process gaps? | < 2s |
+| `models` | Which models do what, and is that efficient? | < 2s |
 | `semantic` | What are my real recurring intents? | 5–30s first run, < 2s cached |
 
 A useful sequence: run `semantic` to find your top intent clusters, cross-reference with `patterns` to see the mechanical steps that accompany them, check `growth` for coverage or documentation gaps in those projects, and use `workflow` to see where in a session those patterns tend to occur.
@@ -157,6 +159,19 @@ token-burn growth -p 30days
 
 **Conversation ratio** — The fraction of turns that are pure conversation (no tools used). High conversation is normal for design and review, but a project staying above 40% across many sessions often means unclear requirements regenerating the same discussion, missing documentation being reconstructed repeatedly, or architectural uncertainty that hasn't been resolved. Projects with fewer than five turns in the period are excluded to avoid noise.
 
+### models
+
+**What it answers:** *Which models are being used for what, and is that a good match?*
+
+```bash
+token-burn models
+token-burn models -p 7days
+```
+
+**Model × activity breakdown** — For each model in the period, shows total turns, total tokens, average tokens per turn, and the top three activity categories by share of turns. A model averaging 2k tokens/turn on Conversation is a different story than one averaging 80k tokens/turn on Feature Dev.
+
+**Efficiency signals** — Flags any model where more than 30% of its turns fell into low-value activity categories (Conversation, Git Ops, General, Delegation). This isn't always actionable (Claude Code picks the model, not you), but it surfaces patterns worth knowing — e.g. Opus spending most of its turns on pure conversation turns that Sonnet handles equally well.
+
 ### semantic
 
 **What it answers:** *What are the 6–10 recurring things I actually ask Claude to do?*
@@ -168,6 +183,7 @@ token-burn semantic              # 90-day default, k auto-selected
 token-burn semantic -p 90days    # longer window = better clusters
 token-burn semantic -k 10        # override cluster count
 token-burn semantic --project orchid
+token-burn semantic --labels     # generate 2-3 word labels via LLM (see below)
 ```
 
 `patterns` can tell you that you typed `add` 12 times and `fix` 8 times, but `add a search endpoint`, `add rate limiting`, and `add pagination` are three instances of the same intent — pure counting sees them as unrelated. `semantic` embeds every prompt you typed using a local neural model and groups them by meaning, not wording.
@@ -175,6 +191,24 @@ token-burn semantic --project orchid
 Each prompt is embedded with `fastembed` using `BAAI/bge-small-en-v1.5` (33M parameters, ~130MB, fully offline). Embeddings are cached in `~/.cache/token-burn/embeddings.npz` so re-runs are fast. Clusters are computed with k-means; `k` is auto-selected as `sqrt(n/2)` capped at 20. Each cluster is represented by its three nearest-to-centroid real prompts — you see your own words, not a generated label.
 
 Prompts under three words are excluded (they're confirmations, not intent). A large cluster (20%+ of prompts) mapping to a single task type is an automation candidate: a slash command, a CLAUDE.md workflow entry, or a custom tool. A cluster of documentation prompts that follows feature work suggests a step that could be triggered automatically.
+
+**LLM cluster labels (`--labels`)** — Pass `--labels` to generate a 2–3 word label per cluster instead of inferring the theme from examples. Requires a config file at `~/.config/token-burn/config.toml` (respects `XDG_CONFIG_HOME`). Supports any OpenAI-compatible endpoint:
+
+```toml
+[labels]
+base_url = "http://localhost:11434/v1"   # Ollama
+api_key  = "ollama"
+model    = "llama3.2"
+
+# or Anthropic:
+# base_url = "https://api.anthropic.com/v1"
+# api_key  = "sk-ant-..."
+# model    = "claude-haiku-4-5-20251001"
+
+# or llama.cpp / LM Studio / OpenRouter — any /v1/chat/completions endpoint
+```
+
+Labels are cached in `~/.cache/token-burn/labels.json` keyed by cluster content, so repeat runs with stable clusters make no API calls. If the config is absent or the API call fails, `--labels` silently falls back to showing example prompts.
 
 ---
 

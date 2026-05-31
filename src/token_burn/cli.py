@@ -477,12 +477,84 @@ def growth(
 
 
 @app.command()
+def models(
+    period: Annotated[str, typer.Option('-p', '--period', help='today|7days|30days|90days|month')] = '30days',
+    from_date: Annotated[str | None, typer.Option('--from', help='YYYY-MM-DD')] = None,
+    to_date: Annotated[str | None, typer.Option('--to', help='YYYY-MM-DD')] = None,
+    by_project: Annotated[bool, typer.Option('--by-project', help='Break down model usage per project')] = False,
+) -> None:
+    '''Model usage breakdown by activity type and efficiency signals.'''
+    from .format import format_tokens
+    from .patterns import model_activity_breakdown, model_efficiency_signals, project_model_breakdown
+
+    from_dt, to_dt = _resolve_period(period, from_date, to_date)
+    turns = list(stream_turns(from_dt=from_dt, to_dt=to_dt))
+
+    stats = model_activity_breakdown(turns)
+    if not stats:
+        console.print('[dim]No model data in this period.[/dim]')
+        return
+
+    table = Table(title='Model Usage by Activity', show_header=True, header_style='bold')
+    table.add_column('Model', style='cyan')
+    table.add_column('Turns', justify='right')
+    table.add_column('Tokens', justify='right')
+    table.add_column('Avg/turn', justify='right')
+    table.add_column('Top Activities')
+
+    for s in stats:
+        top_str = '  '.join(f'{a} {pct:.0%}' for a, pct in s.top_activities(3))
+        table.add_row(
+            s.model,
+            f'{s.total_turns:,}',
+            format_tokens(s.total_tokens),
+            format_tokens(int(s.avg_tokens)),
+            top_str,
+        )
+    console.print(table)
+
+    if by_project:
+        console.print()
+        proj_table = Table(title='Model Usage by Project', show_header=True, header_style='bold')
+        proj_table.add_column('Project', style='cyan')
+        proj_table.add_column('Model')
+        proj_table.add_column('Turns', justify='right')
+        proj_table.add_column('Tokens', justify='right')
+        proj_table.add_column('Avg/turn', justify='right')
+        proj_table.add_column('Top Activities')
+        for proj, proj_stats in project_model_breakdown(turns).items():
+            for i, s in enumerate(proj_stats):
+                top_str = '  '.join(f'{a} {pct:.0%}' for a, pct in s.top_activities(2))
+                proj_table.add_row(
+                    proj if i == 0 else '',
+                    s.model,
+                    f'{s.total_turns:,}',
+                    format_tokens(s.total_tokens),
+                    format_tokens(int(s.avg_tokens)),
+                    top_str,
+                )
+        console.print(proj_table)
+
+    signals = model_efficiency_signals(stats)
+    if signals:
+        console.print()
+        sig_table = Table(title='Efficiency Signals', show_header=True, header_style='bold')
+        sig_table.add_column('Model', style='cyan')
+        sig_table.add_column('Signal')
+        sig_table.add_column('Detail')
+        for sig in signals:
+            sig_table.add_row(sig.model, sig.kind, sig.description)
+        console.print(sig_table)
+
+
+@app.command()
 def semantic(
     period: Annotated[str, typer.Option('-p', '--period', help='today|7days|30days|90days|month')] = '90days',
     from_date: Annotated[str | None, typer.Option('--from', help='YYYY-MM-DD')] = None,
     to_date: Annotated[str | None, typer.Option('--to', help='YYYY-MM-DD')] = None,
     k: Annotated[int | None, typer.Option('-k', help='Cluster count (auto-selected by default)')] = None,
     project: Annotated[str | None, typer.Option('--project', help='Scope to one project')] = None,
+    use_labels: Annotated[bool, typer.Option('--labels', help='Generate cluster labels via LLM (requires ~/.config/token-burn/config.toml)')] = False,
 ) -> None:
     '''Semantic intent clustering of user prompts. Requires: pip install "token-burn[semantic]"'''
     from_dt, to_dt = _resolve_period(period, from_date, to_date)
@@ -496,8 +568,15 @@ def semantic(
         console.print(f'[yellow]Only {n_prompts} prompts in this period — need at least 4 for clustering.[/yellow]')
         raise typer.Exit(0)
 
+    labels_config: dict[str, str] | None = None
+    if use_labels:
+        from .config import load_labels_config
+        labels_config = load_labels_config()
+        if labels_config is None:
+            console.print('[yellow]--labels: no config found. Create ~/.config/token-burn/config.toml with a [labels] section.[/yellow]')
+
     try:
-        from .semantic import _MODEL, analyze
+        from .semantic import _MODEL, analyze, label_cluster
     except ModuleNotFoundError:
         console.print('[red]Semantic analysis requires extra dependencies:[/red]')
         console.print('  pip install "token-burn[semantic]"')
@@ -525,7 +604,16 @@ def semantic(
     for cluster_id, cluster_examples in examples.items():
         count = counts[cluster_id]
         pct = count / n_prompts * 100
-        console.print(f'[bold cyan]Cluster {cluster_id + 1}[/bold cyan]  ({count} prompts, {pct:.0f}%)')
+        if labels_config is not None:
+            lbl = label_cluster(cluster_examples, labels_config)
+            heading = (
+                f'[bold cyan]Cluster {cluster_id + 1}[/bold cyan][dim] — [/dim][bold]{lbl}[/bold]'
+                if lbl else
+                f'[bold cyan]Cluster {cluster_id + 1}[/bold cyan]'
+            )
+        else:
+            heading = f'[bold cyan]Cluster {cluster_id + 1}[/bold cyan]'
+        console.print(f'{heading}  ({count} prompts, {pct:.0f}%)')
         for ex in cluster_examples:
             display = ex[:100] + '…' if len(ex) > 100 else ex
             console.print(f'  [dim]→[/dim] {display!r}')
