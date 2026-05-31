@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from token_burn.parser import _parse_iso, _project_name, _stream_jsonl
+from token_burn.parser import _is_injected_content, _parse_iso, _project_name, _stream_jsonl
 
 
 def test_parse_iso_utc():
@@ -47,6 +47,24 @@ def test_stream_turns_dedup(tmp_path: Path, monkeypatch):
     # msg_01 appears twice in fixture but should only be counted once
     assert ids.count('msg_01') == 1
     assert len(turns) == 2
+
+
+def test_is_injected_content_skill_body():
+    assert _is_injected_content('Base directory for this skill: /foo')
+    assert not _is_injected_content('Let me fix that bug.')
+
+
+def test_is_injected_content_xml():
+    assert _is_injected_content('<task-notification>foo</task-notification>')
+    assert not _is_injected_content('Show me the task list.')
+
+
+def test_is_injected_content_shell_prompt():
+    assert _is_injected_content('(base) david@Mac orchid % which codeindex\n/opt/homebrew/bin/codeindex')
+    assert _is_injected_content('$ git status\nOn branch main')
+    assert _is_injected_content('% ls -la\ntotal 42')
+    assert not _is_injected_content('What does this function do?')
+    assert not _is_injected_content('(some parenthetical note without a trailing space-word)')
 
 
 def test_stream_turns_token_values(monkeypatch):

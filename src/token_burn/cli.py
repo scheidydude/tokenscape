@@ -71,6 +71,8 @@ def _resolve_period(
         return _today_range()
     if period == 'month':
         return _month_range()
+    if period == '90days':
+        return _days_range(90)
     if period == '30days':
         return _days_range(30)
     return _days_range(7)
@@ -476,7 +478,7 @@ def growth(
 
 @app.command()
 def semantic(
-    period: Annotated[str, typer.Option('-p', '--period', help='today|7days|30days|month')] = '30days',
+    period: Annotated[str, typer.Option('-p', '--period', help='today|7days|30days|90days|month')] = '90days',
     from_date: Annotated[str | None, typer.Option('--from', help='YYYY-MM-DD')] = None,
     to_date: Annotated[str | None, typer.Option('--to', help='YYYY-MM-DD')] = None,
     k: Annotated[int | None, typer.Option('-k', help='Cluster count (auto-selected by default)')] = None,

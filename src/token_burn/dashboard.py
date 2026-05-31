@@ -11,7 +11,15 @@ from textual.widgets import Footer, Static
 
 from .aggregate import Aggregate, AggregateResult, aggregate_turns
 from .format import format_tokens
-from .parser import stream_turns
+from .parser import stream_sessions, stream_turns
+from .patterns import (
+    ActivityTransition,
+    GrowthSignal,
+    RampStats,
+    activity_transitions,
+    growth_signals,
+    session_ramp_stats,
+)
 
 # ── gradient bar ──────────────────────────────────────────────────────────────
 
@@ -157,6 +165,42 @@ class PanelWidget(Static):
             t.append(f'  {agg.turn_count:>4}\n', style='#505050')
         self.update(t)
 
+    def populate_transitions(self, transitions: list[ActivityTransition], ramp: RampStats) -> None:
+        if not transitions:
+            self.update(Text('no activity sequences in this period', style='#505050'))
+            return
+        max_count = max(tr.count for tr in transitions)
+        t = Text(no_wrap=True)
+        for tr in transitions:
+            t.append_text(_bar(tr.count, max_count))
+            t.append(' ')
+            t.append(tr.from_activity[:13].ljust(13), style=_ACTIVITY_COLORS.get(tr.from_activity, '#d0d0d0'))
+            t.append(' → ', style='#505050')
+            t.append(tr.to_activity[:13].ljust(13), style=_ACTIVITY_COLORS.get(tr.to_activity, '#d0d0d0'))
+            t.append(f'  {tr.count:>4}', style='#a0a0a0')
+            t.append(f'  {tr.pct:.0%}\n', style='#505050')
+        t.append(f'\n  ramp  mean {ramp.mean:.1f}  p90 {ramp.p90:.0f}  ({ramp.session_count} sessions)', style='#505050')
+        self.update(t)
+
+    _KIND_LABELS: dict[str, str] = {
+        'debug_test_ratio': 'debug/test ratio',
+        'no_tests': 'no tests',
+        'high_conversation': 'conversation',
+    }
+
+    def populate_growth(self, signals: list[GrowthSignal]) -> None:
+        if not signals:
+            self.update(Text('no signals flagged in this period', style='#505050'))
+            return
+        t = Text(no_wrap=True)
+        for s in signals:
+            label = self._KIND_LABELS.get(s.kind, s.kind)
+            t.append('! ', style='#f5c040')
+            t.append(s.project[:16].ljust(16), style='#4db8ff')
+            t.append(f'  {label:<17}', style='#d0d0d0')
+            t.append(f'  {s.description}\n', style='#a0a0a0')
+        self.update(t)
+
     def populate_days(self, data: dict[str, Aggregate]) -> None:
         if not data:
             self.update('')
@@ -205,6 +249,14 @@ SummaryWidget {
     width: 1fr;
 }
 
+#bottom-row {
+    height: auto;
+}
+
+#workflow, #growth {
+    width: 1fr;
+}
+
 PanelWidget {
     height: auto;
     padding: 0 1;
@@ -247,6 +299,9 @@ class TokenBurnApp(App[None]):
                 yield PanelWidget('By Project', 'green', id='projects')
                 yield PanelWidget('By Model', 'green', id='models')
                 yield PanelWidget('Shell Commands', 'magenta', id='shell')
+        with Horizontal(id='bottom-row'):
+            yield PanelWidget('Workflow Transitions', 'blue', id='workflow')
+            yield PanelWidget('Growth Signals', 'magenta', id='growth')
         yield Footer()
 
     def on_mount(self) -> None:
@@ -268,7 +323,8 @@ class TokenBurnApp(App[None]):
         else:
             from_dt, to_dt = _days_range(7)
 
-        result = aggregate_turns(stream_turns(from_dt=from_dt, to_dt=to_dt))
+        all_turns = list(stream_turns(from_dt=from_dt, to_dt=to_dt))
+        result = aggregate_turns(iter(all_turns))
         self.query_one('#summary', SummaryWidget).update_data(result, _PERIOD_LABELS[p])
         self.query_one('#days', PanelWidget).populate_days(result.by_day)
         self.query_one('#activity', PanelWidget).populate(result.by_activity, label_colors=_ACTIVITY_COLORS)
@@ -277,6 +333,14 @@ class TokenBurnApp(App[None]):
         self.query_one('#projects', PanelWidget).populate(result.by_project)
         self.query_one('#models', PanelWidget).populate(result.by_model)
         self.query_one('#shell', PanelWidget).populate(result.by_shell_cmd)
+
+        sessions = list(stream_sessions(from_dt=from_dt, to_dt=to_dt))
+        transitions = activity_transitions(sessions)
+        ramp = session_ramp_stats(sessions)
+        self.query_one('#workflow', PanelWidget).populate_transitions(transitions, ramp)
+
+        signals = growth_signals(all_turns)
+        self.query_one('#growth', PanelWidget).populate_growth(signals)
 
     def action_period_today(self) -> None: self.period = 'today'
     def action_period_7days(self) -> None: self.period = '7days'
