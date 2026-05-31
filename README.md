@@ -66,6 +66,13 @@ Launch with `token-burn` (no arguments).
  │ Exploration       │  │ Haiku 4.5         │
  │ ...               │  │ ...               │
  └───────────────────┘  └───────────────────┘
+
+ ┌─ Workflow Transitions ────────────────────┐  ┌─ Growth Signals ──────────────────────────┐
+ │ ████ Coding       → Debugging   47  18%  │  │ ! token-burn  debug/test ratio  4.2× ...  │
+ │ ███  Debugging    → Coding      38  15%  │  │ ! orchid      conversation      62% ...   │
+ │ ...                                      │  │                                           │
+ │   ramp  mean 3.1  p90 11  (42 sessions)  │  │                                           │
+ └──────────────────────────────────────────┘  └───────────────────────────────────────────┘
 ```
 
 **Keyboard shortcuts:**
@@ -157,7 +164,7 @@ token-burn growth -p 30days
 Requires `pip install "token-burn[semantic]"`.
 
 ```bash
-token-burn semantic              # 30-day default, k auto-selected
+token-burn semantic              # 90-day default, k auto-selected
 token-burn semantic -p 90days    # longer window = better clusters
 token-burn semantic -k 10        # override cluster count
 token-burn semantic --project orchid
@@ -210,7 +217,7 @@ Each turn is classified into one of 13 categories:
 - Override base path with `CLAUDE_CONFIG_DIR` env var
 - macOS: `~/Library/Application Support/Claude/local-agent-mode-sessions/`
 
-Turns are deduplicated by `message.id`. Date filtering is per-entry timestamp, so long sessions spanning midnight are bucketed correctly. Skill body injections, task notifications, and system XML blocks are stripped from user text before analysis.
+Turns are deduplicated by `message.id`. Date filtering is per-entry timestamp, so long sessions spanning midnight are bucketed correctly. Skill body injections, task notifications, system XML blocks, and terminal output pasted as prompts are stripped from user text before analysis.
 
 ## Development
 

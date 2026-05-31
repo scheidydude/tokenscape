@@ -51,6 +51,7 @@ def _extract_tools(content: list[object]) -> tuple[list[str], list[str], list[st
 
 
 _XML_BLOCK_RE = re.compile(r'^<[a-z]')
+_SHELL_PROMPT_RE = re.compile(r'^(?:\([\w.-]+\) |\$ |% )')
 
 
 def _is_injected_content(text: str) -> bool:
@@ -62,6 +63,9 @@ def _is_injected_content(text: str) -> bool:
         return True
     # Long markdown-headed blocks are skill documentation
     if len(s) > 300 and re.match(r'^#+ \w', s):
+        return True
+    # Terminal output pasted as a prompt: (base) user@host %, $ , or % prefixes
+    if _SHELL_PROMPT_RE.match(s):
         return True
     # System/task XML notifications: <task-notification>, <system-reminder>, etc.
     if _XML_BLOCK_RE.match(s):
