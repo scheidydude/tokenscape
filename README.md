@@ -38,6 +38,8 @@ token-burn project token-burn      # drill-down for a specific project
 token-burn export                  # CSV export (today / 7d / 30d)
 token-burn export -f json
 
+token-burn full-report             # full markdown report to stdout (all commands in one pass)
+token-burn full-report --top 10 --output report.md
 token-burn patterns                # shell automation candidates + hottest files + user prompt patterns
 token-burn workflow                # activity transition sequences + session ramp time
 token-burn growth                  # per-project efficiency gaps
@@ -105,7 +107,7 @@ token-burn project myapp --from 2026-05-01 --to 2026-05-15
 
 ## Workflow analysis
 
-Beyond token cost, these four commands answer: *what do you repeatedly ask Claude to do, where do you spend the most time, and what does that reveal about your workflow?*
+Beyond token cost, these commands answer: *what do you repeatedly ask Claude to do, where do you spend the most time, and what does that reveal about your workflow?*
 
 | Command | Question answered | Time to run |
 |---------|-------------------|-------------|
@@ -114,6 +116,7 @@ Beyond token cost, these four commands answer: *what do you repeatedly ask Claud
 | `growth` | Which projects have process gaps? | < 2s |
 | `models` | Which models do what, and is that efficient? | < 2s |
 | `semantic` | What are my real recurring intents? | 5–30s first run, < 2s cached |
+| `full-report` | All of the above as a single markdown document | < 5s (+ semantic if installed) |
 
 A useful sequence: run `semantic` to find your top intent clusters, cross-reference with `patterns` to see the mechanical steps that accompany them, check `growth` for coverage or documentation gaps in those projects, and use `workflow` to see where in a session those patterns tend to occur.
 
@@ -166,11 +169,14 @@ token-burn growth -p 30days
 ```bash
 token-burn models
 token-burn models -p 7days
+token-burn models --by-project     # add per-project model breakdown
 ```
 
 **Model × activity breakdown** — For each model in the period, shows total turns, total tokens, average tokens per turn, and the top three activity categories by share of turns. A model averaging 2k tokens/turn on Conversation is a different story than one averaging 80k tokens/turn on Feature Dev.
 
 **Efficiency signals** — Flags any model where more than 30% of its turns fell into low-value activity categories (Conversation, Git Ops, General, Delegation). This isn't always actionable (Claude Code picks the model, not you), but it surfaces patterns worth knowing — e.g. Opus spending most of its turns on pure conversation turns that Sonnet handles equally well.
+
+**By project (`--by-project`)** — Adds a second table showing model usage broken down per project: which model each project used, how many turns, total tokens, and top two activities. Useful for spotting a project that consistently pulls in a more expensive model than others.
 
 ### semantic
 
@@ -209,6 +215,20 @@ model    = "llama3.2"
 ```
 
 Labels are cached in `~/.cache/token-burn/labels.json` keyed by cluster content, so repeat runs with stable clusters make no API calls. If the config is absent or the API call fails, `--labels` silently falls back to showing example prompts.
+
+### full-report
+
+**What it answers:** *Everything, in one document.*
+
+```bash
+token-burn full-report                        # 30-day default, stdout
+token-burn full-report -p 7days               # shorter window
+token-burn full-report --top 12               # more rows per table (default 8)
+token-burn full-report --labels               # LLM cluster labels (requires config)
+token-burn full-report --output report.md     # write to file
+```
+
+Runs all analysis in a single pass and emits a markdown document with sections for: summary, projects, workflow transitions + session ramp, growth signals, model efficiency + by-project model breakdown, patterns (shell commands, hottest files, prompt verbs, bigrams), and intent clusters if `[semantic]` is installed. Status/warning messages go to stderr so `token-burn full-report > report.md` works cleanly.
 
 ---
 
