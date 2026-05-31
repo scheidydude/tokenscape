@@ -1,6 +1,6 @@
 # token-burn
 
-CLI and TUI for tracking AI token usage and cost. Currently supports **Claude Code only** — reads session transcripts directly from `~/.claude/projects/` — no API keys, no proxy, no wrapper.
+CLI and TUI for tracking AI token usage and cost — and for understanding how you actually work. Reads session transcripts directly from `~/.claude/projects/` — no API keys, no proxy, no wrapper. Currently supports **Claude Code only**.
 
 ## Install
 
@@ -14,7 +14,7 @@ Zero-install run:
 uvx token-burn
 ```
 
-Optional semantic clustering features:
+Optional semantic clustering:
 
 ```bash
 pip install "token-burn[semantic]"
@@ -93,11 +93,24 @@ token-burn project orchid -p 7days
 token-burn project myapp --from 2026-05-01 --to 2026-05-15
 ```
 
+---
+
 ## Workflow analysis
+
+Beyond token cost, these four commands answer: *what do you repeatedly ask Claude to do, where do you spend the most time, and what does that reveal about your workflow?*
+
+| Command | Question answered | Time to run |
+|---------|-------------------|-------------|
+| `patterns` | What repeats at the mechanical level? | < 2s |
+| `workflow` | How do sessions actually flow? | < 2s |
+| `growth` | Which projects have process gaps? | < 2s |
+| `semantic` | What are my real recurring intents? | 5–30s first run, < 2s cached |
+
+A useful sequence: run `semantic` to find your top intent clusters, cross-reference with `patterns` to see the mechanical steps that accompany them, check `growth` for coverage or documentation gaps in those projects, and use `workflow` to see where in a session those patterns tend to occur.
 
 ### patterns
 
-Shell automation candidates, hottest edited files, and user prompt patterns.
+**What it answers:** *What does Claude do for me repeatedly, and what do I keep asking for?*
 
 ```bash
 token-burn patterns              # 30-day default
@@ -105,36 +118,41 @@ token-burn patterns -p 7days
 token-burn patterns --min 5      # raise repetition threshold (default 3)
 ```
 
-Shows:
-- **Claude's top Bash operations** — commands Claude ran most often on your behalf, normalized to first two words
-- **Hottest files** — files edited most frequently across sessions
-- **User prompt verbs** — leading action words from your typed prompts
-- **User prompt bigrams** — top word pairs (stopwords removed)
-- **Repeated prompts** — exact prompts typed more than once
+**Claude's top Bash operations** — Every time Claude runs a shell command on your behalf, it's recorded. `patterns` counts these, normalized to the first two words, and surfaces the ones that repeat most. A command Claude runs 20+ times is a candidate for an alias, a Makefile target, or a CLAUDE.md shortcut so Claude stops reinventing it every session. High counts signal that Claude is doing the same mechanical step repeatedly — a sign the step could be encoded as a convention rather than re-derived each time.
+
+**Hottest files** — Files Claude edits most frequently across sessions. A file appearing 15 times in 30 days is either a core module (expected) or a chronic trouble spot. Cross-reference with `growth`: if the same file appears in both hottest-files and your debug-heavy projects, it may warrant refactoring or better test coverage.
+
+**User prompt verbs, bigrams, and repeated prompts** — These sections analyze what *you* typed, not what Claude ran. The leading verb of each prompt shows your dominant intent: `add`, `fix`, `update`, `check`. Bigrams surface recurring topic pairs after stopwords are removed. Exact repeated prompts are the highest-value automation targets — if you typed the same thing four times, it belongs in a slash command or CLAUDE.md workflow.
 
 ### workflow
 
-Activity transition sequences and session ramp time.
+**What it answers:** *How does my work actually flow within a session, and how long does it take me to get to productive work?*
 
 ```bash
 token-burn workflow
-token-burn workflow -p 7days
+token-burn workflow -p 30days
 ```
 
-Shows the most common activity-to-activity transitions across sessions (self-loops excluded) and how many turns elapse before the first file edit per session (mean + p90).
+**Activity transitions** — Each turn is classified into one of 13 activity types (Coding, Debugging, Exploration, Planning, etc.). `workflow` counts transitions between activities across all sessions. A high `Exploration → Coding` rate means you typically read before you write. A high `Coding → Debugging` rate means edits often need follow-up correction. These aren't judgements — they're a map of your actual process, which is the first step to changing it intentionally. Self-transitions are excluded; only cross-activity moves are shown.
+
+**Session ramp time** — For each session, this counts how many turns elapsed before the first file edit. The mean and p90 tell you how much discovery and conversation overhead precedes actual changes. A high mean (10+ turns) may indicate that context being re-derived from scratch each session could instead be pre-loaded via CLAUDE.md or project documentation.
 
 ### growth
 
-Per-project efficiency signals based on activity ratios.
+**What it answers:** *Where are the gaps in my process, by project?*
 
 ```bash
 token-burn growth
 token-burn growth -p 30days
 ```
 
-Flags: high debug-to-test ratio (low test coverage signal), zero test activity alongside repeated debugging, and high conversation ratio (planning or requirements overhead).
+**Debug-to-test ratio** — Compares turns classified as `Debugging` against turns classified as `Testing` within each project. A ratio above 3×, or zero test turns alongside repeated debugging, flags a project where bugs are being found reactively rather than caught proactively. This doesn't tell you how to add tests — it tells you which project most needs them.
 
-## Semantic clustering
+**Conversation ratio** — The fraction of turns that are pure conversation (no tools used). High conversation is normal for design and review, but a project staying above 40% across many sessions often means unclear requirements regenerating the same discussion, missing documentation being reconstructed repeatedly, or architectural uncertainty that hasn't been resolved. Projects with fewer than five turns in the period are excluded to avoid noise.
+
+### semantic
+
+**What it answers:** *What are the 6–10 recurring things I actually ask Claude to do?*
 
 Requires `pip install "token-burn[semantic]"`.
 
@@ -145,7 +163,13 @@ token-burn semantic -k 10        # override cluster count
 token-burn semantic --project orchid
 ```
 
-Embeds all user prompts with `fastembed` (`BAAI/bge-small-en-v1.5`), clusters with k-means, and shows the three nearest-to-centroid real prompts per cluster. `k` defaults to `sqrt(n/2)` capped at 20. Embeddings are cached in `~/.cache/token-burn/embeddings.npz` and reused on subsequent runs.
+`patterns` can tell you that you typed `add` 12 times and `fix` 8 times, but `add a search endpoint`, `add rate limiting`, and `add pagination` are three instances of the same intent — pure counting sees them as unrelated. `semantic` embeds every prompt you typed using a local neural model and groups them by meaning, not wording.
+
+Each prompt is embedded with `fastembed` using `BAAI/bge-small-en-v1.5` (33M parameters, ~130MB, fully offline). Embeddings are cached in `~/.cache/token-burn/embeddings.npz` so re-runs are fast. Clusters are computed with k-means; `k` is auto-selected as `sqrt(n/2)` capped at 20. Each cluster is represented by its three nearest-to-centroid real prompts — you see your own words, not a generated label.
+
+Prompts under three words are excluded (they're confirmations, not intent). A large cluster (20%+ of prompts) mapping to a single task type is an automation candidate: a slash command, a CLAUDE.md workflow entry, or a custom tool. A cluster of documentation prompts that follows feature work suggests a step that could be triggered automatically.
+
+---
 
 ## Token breakdowns
 
