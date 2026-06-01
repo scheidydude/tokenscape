@@ -115,11 +115,15 @@ def _save_summary_cache(cache: dict[str, str]) -> None:
 
 
 def generate_ai_summary(context: dict, config: dict[str, str], force: bool = False) -> str | None:
+    import sys
+    import urllib.error
+
     cache = _load_summary_cache()
     key = hashlib.sha256(
         json.dumps({**context, '__model__': config['model']}, sort_keys=True).encode()
     ).hexdigest()
     if not force and key in cache:
+        print(f'AI Insights: using cached summary ({config["model"]})', file=sys.stderr)
         return cache[key]
 
     prompt = (
@@ -136,28 +140,36 @@ def generate_ai_summary(context: dict, config: dict[str, str], force: bool = Fal
     payload = json.dumps({
         'model': config['model'],
         'messages': [{'role': 'user', 'content': prompt}],
-        'max_tokens': 600,
+        'max_tokens': 2048,
         'temperature': 0.3,
+        'stream': False,
+        'chat_template_kwargs': {'enable_thinking': False},
     }).encode()
 
+    req = urllib.request.Request(
+        f"{config['base_url']}/chat/completions",
+        data=payload,
+        headers={
+            'Content-Type': 'application/json',
+            'Authorization': f"Bearer {config['api_key']}",
+        },
+        method='POST',
+    )
+    print(f'AI Insights: requesting summary from {config["model"]}…', file=sys.stderr)
     try:
-        req = urllib.request.Request(
-            f"{config['base_url']}/chat/completions",
-            data=payload,
-            headers={
-                'Content-Type': 'application/json',
-                'Authorization': f"Bearer {config['api_key']}",
-            },
-            method='POST',
-        )
-        with urllib.request.urlopen(req, timeout=30) as resp:
+        with urllib.request.urlopen(req, timeout=120) as resp:
             data = json.loads(resp.read())
-        summary = data['choices'][0]['message']['content'].strip()
-        cache[key] = summary
-        _save_summary_cache(cache)
-        return summary
-    except Exception:
-        return None
+    except urllib.error.HTTPError as e:
+        body = e.read().decode('utf-8', errors='replace')
+        raise RuntimeError(f'HTTP {e.code} from {req.full_url}: {body}') from e
+    msg = data['choices'][0]['message']
+    summary = (msg.get('content') or msg.get('reasoning') or '').strip()
+    if not summary:
+        raise RuntimeError(f'Empty response from model. Full response: {json.dumps(data)[:500]}')
+    cache[key] = summary
+    _save_summary_cache(cache)
+    print('AI Insights: done', file=sys.stderr)
+    return summary
 
 
 def embed_prompts(texts: list[str]) -> np.ndarray:
