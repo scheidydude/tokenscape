@@ -15,7 +15,7 @@ def claude_desktop_sessions_dir() -> Path | None:
     return p if p.exists() else None
 
 
-def load_labels_config() -> dict[str, str] | None:
+def load_provider_config() -> dict[str, str] | None:
     xdg = os.environ.get('XDG_CONFIG_HOME', str(Path.home() / '.config'))
     path = Path(xdg) / 'token-burn' / 'config.toml'
     if not path.exists():
@@ -23,7 +23,7 @@ def load_labels_config() -> dict[str, str] | None:
     try:
         with path.open('rb') as f:
             data = tomllib.load(f)
-        section = data.get('labels', {})
+        section = data.get('provider', {})
         base_url = section.get('base_url', '').rstrip('/')
         model = section.get('model', '')
         if not base_url or not model:

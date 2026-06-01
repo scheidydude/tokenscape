@@ -206,7 +206,7 @@ Prompts under three words are excluded (they're confirmations, not intent). A la
 **LLM cluster labels (`--labels`)** — Pass `--labels` to generate a 2–3 word label per cluster instead of inferring the theme from examples. Requires a config file at `~/.config/token-burn/config.toml` (respects `XDG_CONFIG_HOME`). Supports any OpenAI-compatible endpoint:
 
 ```toml
-[labels]
+[provider]
 base_url = "http://localhost:11434/v1"   # Ollama (non-thinking models only)
 api_key  = "ollama"
 model    = "llama3.2:latest"
@@ -242,13 +242,13 @@ token-burn full-report --summarize --force-new  # bypass cached summary
 
 Runs all analysis in a single pass and emits a markdown document with sections for: summary, projects, workflow transitions + session ramp, growth signals, model efficiency + by-project model breakdown, patterns (shell commands, hottest files, prompt verbs, bigrams), and intent clusters if `[semantic]` is installed. Status/warning messages go to stderr so `token-burn full-report > report.md` works cleanly.
 
-**AI Insights (`--summarize`)** — Appends a `## AI Insights` section written by an LLM, covering four areas: usage patterns, token efficiency, model selection, and recommended actions. The LLM receives a structured JSON summary of the report data (no raw prompts) and responds with a 200–300 word analysis referencing your actual numbers. Requires the same `[labels]` config as `--labels`. Results are cached in `~/.cache/token-burn/summaries.json` keyed by model + report data — re-runs with the same data make no API call. Use `--force-new` to bypass the cache (e.g. after switching models).
+**AI Insights (`--summarize`)** — Appends a `## AI Insights` section written by an LLM, covering four areas: usage patterns, token efficiency, model selection, and recommended actions. The LLM receives a structured JSON summary of the report data (no raw prompts) and responds with a 200–300 word analysis referencing your actual numbers. Requires the same `[provider]` config as `--labels`. Results are cached in `~/.cache/token-burn/summaries.json` keyed by model + report data — re-runs with the same data make no API call. Use `--force-new` to bypass the cache (e.g. after switching models).
 
 **Thinking models** — If your LLM endpoint serves a reasoning/thinking model (qwen3, deepseek-r1, etc.), it must suppress thinking tokens or they exhaust the token budget before writing the answer. llama.cpp supports this via `chat_template_kwargs`:
 
 ```toml
 # ~/.config/token-burn/config.toml
-[labels]
+[provider]
 base_url = "http://your-llamacpp-server/v1"
 api_key  = "none"
 model    = "Qwen3.6-35B-A3B-MXFP4_MOE.gguf"

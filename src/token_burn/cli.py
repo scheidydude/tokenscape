@@ -570,10 +570,10 @@ def semantic(
 
     labels_config: dict[str, str] | None = None
     if use_labels:
-        from .config import load_labels_config
-        labels_config = load_labels_config()
+        from .config import load_provider_config
+        labels_config = load_provider_config()
         if labels_config is None:
-            console.print('[yellow]--labels: no config found. Create ~/.config/token-burn/config.toml with a [labels] section.[/yellow]')
+            console.print('[yellow]--labels: no config found. Create ~/.config/token-burn/config.toml with a [provider] section.[/yellow]')
 
     try:
         from .semantic import _MODEL, analyze, label_cluster
@@ -663,17 +663,17 @@ def full_report(
 
     labels_config: dict[str, str] | None = None
     if use_labels:
-        from .config import load_labels_config
-        labels_config = load_labels_config()
+        from .config import load_provider_config
+        labels_config = load_provider_config()
         if labels_config is None:
-            console.print('[yellow]--labels: no config found. Create ~/.config/token-burn/config.toml with a [labels] section.[/yellow]', file=sys.stderr)
+            console.print('[yellow]--labels: no config found. Create ~/.config/token-burn/config.toml with a [provider] section.[/yellow]', file=sys.stderr)
 
     summarize_config: dict[str, str] | None = None
     if summarize:
-        from .config import load_labels_config
-        summarize_config = load_labels_config()
+        from .config import load_provider_config
+        summarize_config = load_provider_config()
         if summarize_config is None:
-            console.print('[yellow]--summarize: no config found. Create ~/.config/token-burn/config.toml with a [labels] section.[/yellow]', file=sys.stderr)
+            console.print('[yellow]--summarize: no config found. Create ~/.config/token-burn/config.toml with a [provider] section.[/yellow]', file=sys.stderr)
 
     from_dt, to_dt = _resolve_period(period, from_date, to_date)
 
