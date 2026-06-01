@@ -42,6 +42,8 @@ token-burn bundle                  # create a zip of session data to share with 
 token-burn full-report             # full markdown report to stdout (all commands in one pass)
 token-burn full-report --source teammate-bundle-20260531.zip
 token-burn full-report --top 10 --output report.md
+token-burn full-report --summarize --output report.md   # append AI Insights section via LLM
+token-burn full-report --summarize --force-new          # bypass cached summary
 token-burn patterns                # shell automation candidates + hottest files + user prompt patterns
 token-burn workflow                # activity transition sequences + session ramp time
 token-burn growth                  # per-project efficiency gaps
@@ -119,6 +121,7 @@ Beyond token cost, these commands answer: *what do you repeatedly ask Claude to 
 | `models` | Which models do what, and is that efficient? | < 2s |
 | `semantic` | What are my real recurring intents? | 5–30s first run, < 2s cached |
 | `full-report` | All of the above as a single markdown document | < 5s (+ semantic if installed) |
+| `full-report --summarize` | All of the above + AI-generated insights section | depends on LLM |
 
 A useful sequence: run `semantic` to find your top intent clusters, cross-reference with `patterns` to see the mechanical steps that accompany them, check `growth` for coverage or documentation gaps in those projects, and use `workflow` to see where in a session those patterns tend to occur.
 
@@ -204,16 +207,21 @@ Prompts under three words are excluded (they're confirmations, not intent). A la
 
 ```toml
 [labels]
-base_url = "http://localhost:11434/v1"   # Ollama
+base_url = "http://localhost:11434/v1"   # Ollama (non-thinking models only)
 api_key  = "ollama"
-model    = "llama3.2"
+model    = "llama3.2:latest"
 
-# or Anthropic:
+# llama.cpp (recommended for thinking models — qwen3, deepseek-r1, etc.):
+# base_url = "http://your-server/v1"
+# api_key  = "none"
+# model    = "Qwen3.6-35B-A3B-MXFP4_MOE.gguf"
+
+# Anthropic:
 # base_url = "https://api.anthropic.com/v1"
 # api_key  = "sk-ant-..."
 # model    = "claude-haiku-4-5-20251001"
 
-# or llama.cpp / LM Studio / OpenRouter — any /v1/chat/completions endpoint
+# LM Studio / OpenRouter — any /v1/chat/completions endpoint
 ```
 
 Labels are cached in `~/.cache/token-burn/labels.json` keyed by cluster content, so repeat runs with stable clusters make no API calls. If the config is absent or the API call fails, `--labels` silently falls back to showing example prompts.
@@ -228,9 +236,25 @@ token-burn full-report -p 7days               # shorter window
 token-burn full-report --top 12               # more rows per table (default 8)
 token-burn full-report --labels               # LLM cluster labels (requires config)
 token-burn full-report --output report.md     # write to file
+token-burn full-report --summarize            # append AI Insights section (requires config)
+token-burn full-report --summarize --force-new  # bypass cached summary
 ```
 
 Runs all analysis in a single pass and emits a markdown document with sections for: summary, projects, workflow transitions + session ramp, growth signals, model efficiency + by-project model breakdown, patterns (shell commands, hottest files, prompt verbs, bigrams), and intent clusters if `[semantic]` is installed. Status/warning messages go to stderr so `token-burn full-report > report.md` works cleanly.
+
+**AI Insights (`--summarize`)** — Appends a `## AI Insights` section written by an LLM, covering four areas: usage patterns, token efficiency, model selection, and recommended actions. The LLM receives a structured JSON summary of the report data (no raw prompts) and responds with a 200–300 word analysis referencing your actual numbers. Requires the same `[labels]` config as `--labels`. Results are cached in `~/.cache/token-burn/summaries.json` keyed by model + report data — re-runs with the same data make no API call. Use `--force-new` to bypass the cache (e.g. after switching models).
+
+**Thinking models** — If your LLM endpoint serves a reasoning/thinking model (qwen3, deepseek-r1, etc.), it must suppress thinking tokens or they exhaust the token budget before writing the answer. llama.cpp supports this via `chat_template_kwargs`:
+
+```toml
+# ~/.config/token-burn/config.toml
+[labels]
+base_url = "http://your-llamacpp-server/v1"
+api_key  = "none"
+model    = "Qwen3.6-35B-A3B-MXFP4_MOE.gguf"
+```
+
+token-burn automatically passes `{"enable_thinking": false}` via `chat_template_kwargs` to llama.cpp. Ollama does not reliably honor this flag via its OpenAI-compatible endpoint — use llama.cpp or a non-thinking model with Ollama.
 
 **Sharing with teammates** — use `token-burn bundle` to create a zip of your session data, then teammates run `full-report --source` against it on their own machine. No server required.
 
