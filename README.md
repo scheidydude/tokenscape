@@ -270,6 +270,29 @@ The bundle contains only `.jsonl` session files — no credentials, settings, or
 
 ---
 
+## Multi-machine usage
+
+If you use Claude Code across multiple machines, run `bundle` on each one and merge the zips before analysis.
+
+```bash
+# On each machine:
+token-burn bundle                    # → token-burn-bundle-YYYYMMDD.zip
+```
+
+Transfer all zips to one machine, then:
+
+```bash
+mkdir merged
+for zip in machine1.zip machine2.zip machine3.zip; do
+    unzip -o "$zip" -d merged/
+done
+token-burn full-report --source merged/
+```
+
+Works because session files are named by UUID — no collisions when merging. Any `token-burn` command that accepts `--source` works against the merged directory.
+
+---
+
 ## Token breakdowns
 
 All reports show four token types plus total:
