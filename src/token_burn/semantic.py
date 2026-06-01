@@ -114,10 +114,12 @@ def _save_summary_cache(cache: dict[str, str]) -> None:
     _SUMMARY_CACHE_PATH.write_text(json.dumps(cache, indent=2))
 
 
-def generate_ai_summary(context: dict, config: dict[str, str]) -> str | None:
+def generate_ai_summary(context: dict, config: dict[str, str], force: bool = False) -> str | None:
     cache = _load_summary_cache()
-    key = hashlib.sha256(json.dumps(context, sort_keys=True).encode()).hexdigest()
-    if key in cache:
+    key = hashlib.sha256(
+        json.dumps({**context, '__model__': config['model']}, sort_keys=True).encode()
+    ).hexdigest()
+    if not force and key in cache:
         return cache[key]
 
     prompt = (

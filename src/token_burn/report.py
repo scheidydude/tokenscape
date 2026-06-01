@@ -47,6 +47,7 @@ def generate(
     top: int = 8,
     labels_config: dict[str, str] | None = None,
     summarize_config: dict[str, str] | None = None,
+    force_summary: bool = False,
 ) -> str:
     parts: list[str] = []
 
@@ -256,7 +257,7 @@ def generate(
                 'session_count': _ramp_stats.session_count,
             }
 
-            ai_text = generate_ai_summary(context, summarize_config)
+            ai_text = generate_ai_summary(context, summarize_config, force=force_summary)
             if ai_text:
                 parts.append(f'## AI Insights\n\n{ai_text}')
         except Exception:

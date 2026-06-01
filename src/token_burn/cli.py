@@ -649,6 +649,7 @@ def full_report(
     top: Annotated[int, typer.Option('--top', help='Max rows per table section')] = 8,
     use_labels: Annotated[bool, typer.Option('--labels', help='Generate cluster labels via LLM (requires ~/.config/token-burn/config.toml)')] = False,
     summarize: Annotated[bool, typer.Option('--summarize', help='Append AI Insights section via LLM (requires ~/.config/token-burn/config.toml)')] = False,
+    force_new: Annotated[bool, typer.Option('--force-new', help='Bypass summary cache and regenerate AI Insights')] = False,
     output: Annotated[str | None, typer.Option('--output', '-o', help='Write to file instead of stdout')] = None,
     source: Annotated[str | None, typer.Option('--source', help='Analyze a bundle zip or directory instead of ~/.claude')] = None,
 ) -> None:
@@ -690,6 +691,7 @@ def full_report(
             top=top,
             labels_config=labels_config,
             summarize_config=summarize_config,
+            force_summary=force_new,
         )
 
     if source:
