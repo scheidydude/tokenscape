@@ -260,7 +260,8 @@ def generate(
             ai_text = generate_ai_summary(context, summarize_config, force=force_summary)
             if ai_text:
                 parts.append(f'## AI Insights\n\n{ai_text}')
-        except Exception:
-            pass
+        except Exception as e:
+            import sys
+            print(f'[token-burn] AI Insights error: {e!r}', file=sys.stderr)
 
     return '\n\n'.join(parts) + '\n'
