@@ -46,6 +46,7 @@ def generate(
     period_label: str,
     top: int = 8,
     labels_config: dict[str, str] | None = None,
+    summarize_config: dict[str, str] | None = None,
 ) -> str:
     parts: list[str] = []
 
@@ -198,5 +199,67 @@ def generate(
                 parts.append('\n\n'.join(cluster_lines))
     except ModuleNotFoundError:
         pass
+
+    # ── AI Insights (optional) ────────────────────────────────────────────────
+    if summarize_config:
+        try:
+            from .semantic import generate_ai_summary
+
+            u2 = result.totals.usage
+            denom2 = u2.input + u2.cache_read
+            cache_pct2 = u2.cache_read / denom2 * 100 if denom2 else 0.0
+
+            _stats = model_activity_breakdown(turns)
+            _signals = growth_signals(turns)
+            _eff = model_efficiency_signals(_stats)
+            _candidates = shell_automation_candidates(turns, min_count=3)
+            _verbs = prompt_action_verbs(turns, top_n=10)
+            _ramp_stats = session_ramp_stats(sessions)
+
+            context = {
+                'period': f'{from_dt.date()} to {to_dt.date()}',
+                'total_tokens': u2.total,
+                'total_turns': result.totals.turn_count,
+                'cache_hit_pct': round(cache_pct2, 1),
+                'models': [
+                    {
+                        'model': s.model,
+                        'turns': s.total_turns,
+                        'total_tokens': s.total_tokens,
+                        'avg_tokens_per_turn': int(s.avg_tokens),
+                        'top_activities': [
+                            {'activity': a, 'pct': round(p * 100, 1)}
+                            for a, p in s.top_activities(3)
+                        ],
+                    }
+                    for s in _stats[:5]
+                ],
+                'top_projects': [
+                    {'project': name, 'turns': a.turn_count, 'total_tokens': a.usage.total}
+                    for name, a in sorted(result.by_project.items(), key=lambda x: -x[1].usage.total)[:5]
+                ],
+                'growth_signals': [
+                    {'project': s.project, 'kind': s.kind, 'description': s.description}
+                    for s in _signals
+                ],
+                'model_efficiency_signals': [
+                    {'model': sig.model, 'kind': sig.kind, 'description': sig.description}
+                    for sig in _eff
+                ],
+                'shell_automation_candidates': [
+                    {'command': c.command, 'count': c.count}
+                    for c in _candidates[:5]
+                ],
+                'prompt_verbs': [{'verb': v, 'count': c} for v, c in _verbs],
+                'session_ramp_mean': round(_ramp_stats.mean, 1),
+                'session_ramp_p90': round(_ramp_stats.p90, 0),
+                'session_count': _ramp_stats.session_count,
+            }
+
+            ai_text = generate_ai_summary(context, summarize_config)
+            if ai_text:
+                parts.append(f'## AI Insights\n\n{ai_text}')
+        except Exception:
+            pass
 
     return '\n\n'.join(parts) + '\n'

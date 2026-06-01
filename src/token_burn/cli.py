@@ -648,6 +648,7 @@ def full_report(
     to_date: Annotated[str | None, typer.Option('--to', help='YYYY-MM-DD')] = None,
     top: Annotated[int, typer.Option('--top', help='Max rows per table section')] = 8,
     use_labels: Annotated[bool, typer.Option('--labels', help='Generate cluster labels via LLM (requires ~/.config/token-burn/config.toml)')] = False,
+    summarize: Annotated[bool, typer.Option('--summarize', help='Append AI Insights section via LLM (requires ~/.config/token-burn/config.toml)')] = False,
     output: Annotated[str | None, typer.Option('--output', '-o', help='Write to file instead of stdout')] = None,
     source: Annotated[str | None, typer.Option('--source', help='Analyze a bundle zip or directory instead of ~/.claude')] = None,
 ) -> None:
@@ -666,6 +667,13 @@ def full_report(
         if labels_config is None:
             console.print('[yellow]--labels: no config found. Create ~/.config/token-burn/config.toml with a [labels] section.[/yellow]', file=sys.stderr)
 
+    summarize_config: dict[str, str] | None = None
+    if summarize:
+        from .config import load_labels_config
+        summarize_config = load_labels_config()
+        if summarize_config is None:
+            console.print('[yellow]--summarize: no config found. Create ~/.config/token-burn/config.toml with a [labels] section.[/yellow]', file=sys.stderr)
+
     from_dt, to_dt = _resolve_period(period, from_date, to_date)
 
     def _run() -> str:
@@ -681,6 +689,7 @@ def full_report(
             period_label=period,
             top=top,
             labels_config=labels_config,
+            summarize_config=summarize_config,
         )
 
     if source:

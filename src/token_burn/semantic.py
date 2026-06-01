@@ -13,6 +13,7 @@ from .types import Turn
 
 _CACHE_PATH = Path.home() / '.cache' / 'token-burn' / 'embeddings.npz'
 _LABEL_CACHE_PATH = Path.home() / '.cache' / 'token-burn' / 'labels.json'
+_SUMMARY_CACHE_PATH = Path.home() / '.cache' / 'token-burn' / 'summaries.json'
 _MODEL = 'BAAI/bge-small-en-v1.5'
 
 
@@ -95,6 +96,64 @@ def label_cluster(examples: list[str], config: dict[str, str]) -> str | None:
         cache[key] = label
         _save_label_cache(cache)
         return label
+    except Exception:
+        return None
+
+
+def _load_summary_cache() -> dict[str, str]:
+    if not _SUMMARY_CACHE_PATH.exists():
+        return {}
+    try:
+        return json.loads(_SUMMARY_CACHE_PATH.read_text())
+    except Exception:
+        return {}
+
+
+def _save_summary_cache(cache: dict[str, str]) -> None:
+    _SUMMARY_CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    _SUMMARY_CACHE_PATH.write_text(json.dumps(cache, indent=2))
+
+
+def generate_ai_summary(context: dict, config: dict[str, str]) -> str | None:
+    cache = _load_summary_cache()
+    key = hashlib.sha256(json.dumps(context, sort_keys=True).encode()).hexdigest()
+    if key in cache:
+        return cache[key]
+
+    prompt = (
+        'You are analyzing a developer\'s Claude Code usage statistics.\n\n'
+        'Report data (JSON):\n'
+        + json.dumps(context, indent=2)
+        + '\n\nWrite a markdown analysis (200-300 words) with these 4 sections:\n'
+        '1. **Usage Patterns** — what the data reveals about work habits\n'
+        '2. **Token Efficiency** — cache hit rate, avg/turn, waste signals\n'
+        '3. **Model Selection** — whether the right models are used for the right tasks\n'
+        '4. **Recommended Actions** — 3-5 specific, actionable improvements\n\n'
+        'Be specific. Reference actual numbers. No generic advice.'
+    )
+    payload = json.dumps({
+        'model': config['model'],
+        'messages': [{'role': 'user', 'content': prompt}],
+        'max_tokens': 600,
+        'temperature': 0.3,
+    }).encode()
+
+    try:
+        req = urllib.request.Request(
+            f"{config['base_url']}/chat/completions",
+            data=payload,
+            headers={
+                'Content-Type': 'application/json',
+                'Authorization': f"Bearer {config['api_key']}",
+            },
+            method='POST',
+        )
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            data = json.loads(resp.read())
+        summary = data['choices'][0]['message']['content'].strip()
+        cache[key] = summary
+        _save_summary_cache(cache)
+        return summary
     except Exception:
         return None
 
