@@ -116,11 +116,11 @@ def generate(
         me_rows = [
             [s.model, f'{s.total_turns:,}', format_tokens(s.total_tokens),
              format_tokens(int(s.avg_tokens)),
-             '  '.join(f'{a} {pct:.0%}' for a, pct in s.top_activities(3))]
+             '<br>'.join(f'{a} {pct:.0%}' for a, pct in s.top_activities(13))]
             for s in stats[:top]
         ]
         me_section = '## Model Efficiency\n\n' + _md_table(
-            ['Model', 'Turns', 'Tokens', 'Avg/turn', 'Top Activities'], me_rows
+            ['Model', 'Turns', 'Tokens', 'Avg/turn', 'Activities'], me_rows
         )
         eff = model_efficiency_signals(stats)
         if eff:
@@ -138,10 +138,10 @@ def generate(
                         f'{s.total_turns:,}',
                         format_tokens(s.total_tokens),
                         format_tokens(int(s.avg_tokens)),
-                        '  '.join(f'{a} {pct:.0%}' for a, pct in s.top_activities(2)),
+                        '<br>'.join(f'{a} {pct:.0%}' for a, pct in s.top_activities(13)),
                     ])
             me_section += '\n\n**By project**\n\n' + _md_table(
-                ['Project', 'Model', 'Turns', 'Tokens', 'Avg/turn', 'Top Activities'], pb_rows
+                ['Project', 'Model', 'Turns', 'Tokens', 'Avg/turn', 'Activities'], pb_rows
             )
 
         parts.append(me_section)

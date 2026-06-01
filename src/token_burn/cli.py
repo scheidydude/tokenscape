@@ -500,10 +500,10 @@ def models(
     table.add_column('Turns', justify='right')
     table.add_column('Tokens', justify='right')
     table.add_column('Avg/turn', justify='right')
-    table.add_column('Top Activities')
+    table.add_column('Activities')
 
     for s in stats:
-        top_str = '  '.join(f'{a} {pct:.0%}' for a, pct in s.top_activities(3))
+        top_str = '\n'.join(f'{a} {pct:.0%}' for a, pct in s.top_activities(13))
         table.add_row(
             s.model,
             f'{s.total_turns:,}',
@@ -521,10 +521,10 @@ def models(
         proj_table.add_column('Turns', justify='right')
         proj_table.add_column('Tokens', justify='right')
         proj_table.add_column('Avg/turn', justify='right')
-        proj_table.add_column('Top Activities')
+        proj_table.add_column('Activities')
         for proj, proj_stats in project_model_breakdown(turns).items():
             for i, s in enumerate(proj_stats):
-                top_str = '  '.join(f'{a} {pct:.0%}' for a, pct in s.top_activities(2))
+                top_str = '\n'.join(f'{a} {pct:.0%}' for a, pct in s.top_activities(13))
                 proj_table.add_row(
                     proj if i == 0 else '',
                     s.model,

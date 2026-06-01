@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "token-burn"
-version = "0.3.0"
+version = "0.3.1"
 description = "AI token usage CLI and TUI (Claude Code)"
 readme = "README.md"
 license = { text = "MIT" }
