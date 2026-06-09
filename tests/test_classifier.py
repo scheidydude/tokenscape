@@ -47,3 +47,42 @@ def test_refactoring():
 
 def test_debugging():
     assert classify(_turn(['Edit'], 'fix this bug')) == Activity.DEBUGGING
+
+
+# ── Codex tool names ──────────────────────────────────────────────────────────
+
+def test_codex_coding_apply_patch():
+    assert classify(_turn(['apply_patch'])) == Activity.CODING
+
+
+def test_codex_coding_write_file():
+    assert classify(_turn(['write_file'])) == Activity.CODING
+
+
+def test_codex_coding_patch_apply():
+    assert classify(_turn(['patch_apply'])) == Activity.CODING
+
+
+def test_codex_exploration_read_file():
+    assert classify(_turn(['read_file'])) == Activity.EXPLORATION
+
+
+def test_codex_exploration_search_files():
+    assert classify(_turn(['search_files'])) == Activity.EXPLORATION
+
+
+def test_codex_feature_dev():
+    assert classify(_turn(['apply_patch'], 'add a readme file')) == Activity.FEATURE_DEV
+
+
+def test_codex_refactoring():
+    assert classify(_turn(['write_file'], 'refactor the auth module')) == Activity.REFACTORING
+
+
+def test_codex_debugging():
+    assert classify(_turn(['apply_patch'], 'fix this bug')) == Activity.DEBUGGING
+
+
+def test_codex_mixed_edit_and_explore():
+    # edit tool present → Coding, not Exploration
+    assert classify(_turn(['read_file', 'apply_patch'])) == Activity.CODING
