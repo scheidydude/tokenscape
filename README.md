@@ -14,7 +14,14 @@ Zero-install run:
 uvx tokenscape
 ```
 
-Optional semantic clustering:
+Local install from source:
+
+```bash
+pip install -e .
+pip install -e ".[semantic]"   # with semantic clustering
+```
+
+Optional semantic clustering (PyPI):
 
 ```bash
 pip install "tokenscape[semantic]"
