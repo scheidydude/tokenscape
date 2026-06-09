@@ -1,0 +1,15 @@
+{"timestamp":"2026-06-09T10:00:00Z","type":"session_meta","payload":{"id":"session-01","timestamp":"2026-06-09T10:00:00Z","cwd":"/Users/david/mycodexproject","originator":"Codex Desktop","cli_version":"0.137.0","model_provider":"openai","base_instructions":{"text":"You are Codex, a coding agent based on GPT-5."}}}
+{"timestamp":"2026-06-09T10:00:01Z","type":"event_msg","payload":{"type":"task_started","turn_id":"turn-01","started_at":1781000001,"model_context_window":258400}}
+{"timestamp":"2026-06-09T10:00:02Z","type":"turn_context","payload":{"turn_id":"turn-01","cwd":"/Users/david/mycodexproject"}}
+{"timestamp":"2026-06-09T10:00:03Z","type":"event_msg","payload":{"type":"user_message","message":"add a readme file","images":[]}}
+{"timestamp":"2026-06-09T10:00:04Z","type":"response_item","payload":{"type":"function_call","name":"exec_command","arguments":"{\"cmd\":\"ls -la\",\"workdir\":\"/Users/david/mycodexproject\"}"}}
+{"timestamp":"2026-06-09T10:00:05Z","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":1000,"cached_input_tokens":400,"output_tokens":100,"total_tokens":1100},"last_token_usage":{"input_tokens":1000,"cached_input_tokens":400,"output_tokens":100,"reasoning_output_tokens":10,"total_tokens":1100}}}}
+{"timestamp":"2026-06-09T10:00:10Z","type":"response_item","payload":{"type":"custom_tool_call","name":"apply_patch","input":"*** Begin Patch\n*** Add File: README.md\n+# My Project\n*** End Patch"}}
+{"timestamp":"2026-06-09T10:00:11Z","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":2000,"cached_input_tokens":900,"output_tokens":300,"total_tokens":2300},"last_token_usage":{"input_tokens":1000,"cached_input_tokens":500,"output_tokens":200,"reasoning_output_tokens":0,"total_tokens":1200}}}}
+{"timestamp":"2026-06-09T10:00:12Z","type":"event_msg","payload":{"type":"task_complete","turn_id":"turn-01","completed_at":1781000012,"duration_ms":9000}}
+{"timestamp":"2026-06-09T10:01:00Z","type":"event_msg","payload":{"type":"task_started","turn_id":"turn-02","started_at":1781000060,"model_context_window":258400}}
+{"timestamp":"2026-06-09T10:01:01Z","type":"turn_context","payload":{"turn_id":"turn-02","cwd":"/Users/david/mycodexproject"}}
+{"timestamp":"2026-06-09T10:01:02Z","type":"event_msg","payload":{"type":"user_message","message":"what does this function do"}}
+{"timestamp":"2026-06-09T10:01:03Z","type":"response_item","payload":{"type":"function_call","name":"read_file","arguments":"{\"path\":\"README.md\"}"}}
+{"timestamp":"2026-06-09T10:01:04Z","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":2800,"cached_input_tokens":1300,"output_tokens":450,"total_tokens":3250},"last_token_usage":{"input_tokens":800,"cached_input_tokens":400,"output_tokens":150,"reasoning_output_tokens":0,"total_tokens":950}}}}
+{"timestamp":"2026-06-09T10:01:05Z","type":"event_msg","payload":{"type":"task_complete","turn_id":"turn-02","completed_at":1781000065,"duration_ms":3000}}
