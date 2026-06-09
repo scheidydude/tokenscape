@@ -11,7 +11,6 @@ from textual.widgets import Footer, Static
 
 from .aggregate import Aggregate, AggregateResult, aggregate_turns
 from .format import format_tokens
-from .parser import stream_sessions, stream_turns
 from .patterns import (
     ActivityTransition,
     GrowthSignal,
@@ -110,12 +109,14 @@ class PeriodBar(Static):
 
 
 class SummaryWidget(Static):
-    def update_data(self, result: AggregateResult, period_label: str) -> None:
+    def update_data(self, result: AggregateResult, period_label: str, tool_label: str = 'CLAUDE') -> None:
         u = result.totals.usage
         denom = u.input + u.cache_read
         cache_pct = (u.cache_read / denom * 100) if denom > 0 else 0.0
+        tool_color = '#00cc66' if tool_label == 'CODEX' else '#4db8ff'
         t = Text()
         t.append('token-burn', style='bold #f5c040')
+        t.append(f'  [{tool_label}]', style=f'bold {tool_color}')
         t.append(f'  {period_label}\n', style='#707070')
         t.append(f'{format_tokens(u.total):>8} total', style='bold #d0d0d0')
         t.append(f'   {result.totals.turn_count:,} turns', style='#a0a0a0')
@@ -274,6 +275,11 @@ PanelWidget.magenta { border: solid #cc44cc; }
 class TokenBurnApp(App[None]):
     TITLE = 'token-burn'
     CSS = _CSS
+
+    def __init__(self, tool: str = 'claude', **kwargs: object) -> None:
+        super().__init__(**kwargs)
+        self._initial_tool = tool
+
     BINDINGS = [
         Binding('left', 'period_prev', 'Prev'),
         Binding('right', 'period_next', 'Next'),
@@ -282,10 +288,12 @@ class TokenBurnApp(App[None]):
         Binding('3', 'period_30days', '30 Days'),
         Binding('4', 'period_month', 'Month'),
         Binding('r', 'refresh', 'Refresh'),
+        Binding('t', 'toggle_tool', 'Tool'),
         Binding('q', 'quit', 'Quit'),
     ]
 
     period: reactive[str] = reactive('7days')
+    tool: reactive[str] = reactive('claude')
 
     def compose(self) -> ComposeResult:
         yield PeriodBar(id='period_bar')
@@ -306,12 +314,20 @@ class TokenBurnApp(App[None]):
         yield Footer()
 
     def on_mount(self) -> None:
+        self.tool = self._initial_tool
         self.query_one('#period_bar', PeriodBar).render_period(self.period)
         self.load_data()
 
     def watch_period(self, value: str) -> None:
         self.query_one('#period_bar', PeriodBar).render_period(value)
         self.load_data()
+
+    def _get_streams(self):
+        if self.tool == 'codex':
+            from .codex_parser import stream_sessions, stream_turns
+        else:
+            from .parser import stream_sessions, stream_turns
+        return stream_turns, stream_sessions
 
     def load_data(self) -> None:
         p = self.period
@@ -324,9 +340,12 @@ class TokenBurnApp(App[None]):
         else:
             from_dt, to_dt = _days_range(7)
 
+        stream_turns, stream_sessions = self._get_streams()
+        tool_label = 'CODEX' if self.tool == 'codex' else 'CLAUDE'
+
         all_turns = list(stream_turns(from_dt=from_dt, to_dt=to_dt))
         result = aggregate_turns(iter(all_turns))
-        self.query_one('#summary', SummaryWidget).update_data(result, _PERIOD_LABELS[p])
+        self.query_one('#summary', SummaryWidget).update_data(result, _PERIOD_LABELS[p], tool_label)
         self.query_one('#days', PanelWidget).populate_days(result.by_day)
         self.query_one('#activity', PanelWidget).populate(result.by_activity, label_colors=_ACTIVITY_COLORS)
         self.query_one('#tools', PanelWidget).populate(result.by_tool)
@@ -348,6 +367,8 @@ class TokenBurnApp(App[None]):
     def action_period_30days(self) -> None: self.period = '30days'
     def action_period_month(self) -> None: self.period = 'month'
     def action_refresh(self) -> None: self.load_data()
+    def action_toggle_tool(self) -> None: self.tool = 'codex' if self.tool == 'claude' else 'claude'
+    def watch_tool(self, value: str) -> None: self.load_data()
 
     def action_period_prev(self) -> None:
         keys = [k for k, _ in _PERIODS]

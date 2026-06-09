@@ -123,7 +123,7 @@ def main(
 def _launch_tui() -> None:
     try:
         from .dashboard import TokenBurnApp
-        TokenBurnApp().run()
+        TokenBurnApp(tool=_ACTIVE_TOOL).run()
     except ImportError:
         console.print('[yellow]TUI not available. Use subcommands: today, report, status, export[/yellow]')
 
