@@ -1,6 +1,6 @@
 # token-burn
 
-CLI and TUI for tracking AI token usage and cost — and for understanding how you actually work. Reads session transcripts directly from `~/.claude/projects/` — no API keys, no proxy, no wrapper. Currently supports **Claude Code only**.
+CLI and TUI for tracking AI token usage and cost — and for understanding how you actually work. Reads session transcripts directly from disk — no API keys, no proxy, no wrapper. Supports **Claude Code** and **Codex CLI**.
 
 ## Install
 
@@ -21,6 +21,22 @@ pip install "token-burn[semantic]"
 # adds: fastembed (~150MB), scikit-learn, numpy
 # downloads on first use: BAAI/bge-small-en-v1.5 (~130MB, cached in ~/.cache/fastembed)
 ```
+
+## Tool selection
+
+By default, token-burn reads Claude Code sessions. Pass `--tool codex` to analyze Codex CLI sessions instead. The flag applies to all commands and the TUI.
+
+```bash
+token-burn --tool codex today
+token-burn --tool codex report -p 30days
+token-burn --tool codex full-report --html-output report.html
+token-burn --tool codex          # TUI in Codex mode
+```
+
+| Tool | Session path |
+|------|-------------|
+| `claude` (default) | `~/.claude/projects/` + `~/Library/Application Support/Claude/local-agent-mode-sessions/` |
+| `codex` | `~/.codex/sessions/` |
 
 ## Usage
 
@@ -60,7 +76,7 @@ Launch with `token-burn` (no arguments).
 ```
   Today    [ 7 Days ]   30 Days    Month
 
- token-burn  7 Days
+ token-burn  [CLAUDE]  7 Days
     92.4M total   1,330 turns   96.1% cache hit
     5.9k in   896.6k out   89.3M cached   2.3M written
 
@@ -93,8 +109,11 @@ Launch with `token-burn` (no arguments).
 | `2` | 7 Days |
 | `3` | 30 Days |
 | `4` | Month |
+| `t` | Toggle tool (CLAUDE ↔ CODEX) |
 | `r` | Refresh |
 | `q` | Quit |
+
+The active tool is shown in the header as `[CLAUDE]` (blue) or `[CODEX]` (green). Switching with `t` reloads all panels immediately.
 
 ## Project drill-down
 
@@ -319,32 +338,42 @@ Each turn is classified into one of 13 categories:
 
 | Category | Trigger |
 |----------|---------|
-| Coding | `Edit` or `Write` tool used |
+| Coding | `Edit`, `Write`, `apply_patch`, or `write_file` used |
 | Feature Dev | add/create/implement keywords + edits |
 | Refactoring | refactor/rename/simplify + edits |
 | Debugging | error/fix/bug keywords + tool use |
-| Testing | pytest/jest/go test in Bash |
-| Exploration | Read/Grep/Glob/WebSearch only |
+| Testing | pytest/jest/go test in shell |
+| Exploration | Read/Grep/Glob/WebSearch/`read_file`/`search_files` only |
 | Planning | EnterPlanMode / TaskCreate tools |
 | Delegation | Agent / Task tool spawn |
-| Git Ops | git push/commit/merge in Bash |
-| Build/Deploy | docker/npm build/pip install in Bash |
+| Git Ops | git push/commit/merge in shell |
+| Build/Deploy | docker/npm build/pip install in shell |
 | Brainstorming | brainstorm/design keywords, no edits |
 | Conversation | No tools, pure text |
 | General | Skill tool or uncategorized |
 
+Codex tool names (`exec_command`, `apply_patch`, `write_file`, `read_file`, `search_files`) map into the same categories as their Claude equivalents.
+
 ## Data sources
 
+**Claude Code (`--tool claude`, default)**
 - `~/.claude/projects/<sanitized-cwd>/<session-id>.jsonl`
 - Override base path with `CLAUDE_CONFIG_DIR` env var
 - macOS: `~/Library/Application Support/Claude/local-agent-mode-sessions/`
 
-Turns are deduplicated by `message.id`. Date filtering is per-entry timestamp, so long sessions spanning midnight are bucketed correctly. Skill body injections, task notifications, system XML blocks, and terminal output pasted as prompts are stripped from user text before analysis.
+Turns deduplicated by `message.id`. Skill body injections, task notifications, system XML blocks, and terminal output pasted as prompts are stripped from user text before analysis.
+
+**Codex CLI (`--tool codex`)**
+- `~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl`
+
+Token counts are accumulated from per-API-call `last_token_usage` deltas within each task turn (bounded by `task_started` / `task_complete` events). Codex sessions have no `cache_write` equivalent — that column always shows 0. Tool names (`exec_command`, `apply_patch`, etc.) map into the same activity classification used for Claude.
+
+Date filtering is per-entry timestamp for both tools, so sessions spanning midnight are bucketed correctly.
 
 ## Development
 
 ```bash
-git clone https://github.com/agentseal/token-burn
+git clone https://github.com/scheidydude/token-burn
 cd token-burn
 uv venv .venv --python 3.11
 uv pip install -e .
