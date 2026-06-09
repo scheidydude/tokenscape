@@ -48,12 +48,13 @@ def generate(
     labels_config: dict[str, str] | None = None,
     summarize_config: dict[str, str] | None = None,
     force_summary: bool = False,
+    tool_label: str = 'CLAUDE',
 ) -> str:
     parts: list[str] = []
 
     now = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')
     parts.append(
-        f'# token-burn report — {period_label} ({from_dt.date()} to {to_dt.date()})\n'
+        f'# token-burn report — {tool_label} · {period_label} ({from_dt.date()} to {to_dt.date()})\n'
         f'*Generated {now}*'
     )
 

@@ -9,11 +9,37 @@ from rich.console import Console
 from rich.table import Table
 
 from .aggregate import AggregateResult, aggregate_turns
-from .parser import list_projects, stream_sessions, stream_turns
 from .types import Aggregate, TokenUsage
 
 app = typer.Typer(no_args_is_help=False, invoke_without_command=True)
 console = Console()
+
+_ACTIVE_TOOL: str = 'claude'
+_TOOL_LABEL: dict[str, str] = {'claude': 'CLAUDE', 'codex': 'CODEX'}
+
+
+def _stream_turns(from_dt: datetime | None = None, to_dt: datetime | None = None):
+    if _ACTIVE_TOOL == 'codex':
+        from .codex_parser import stream_turns
+        return stream_turns(from_dt=from_dt, to_dt=to_dt)
+    from .parser import stream_turns
+    return stream_turns(from_dt=from_dt, to_dt=to_dt)
+
+
+def _stream_sessions(from_dt: datetime | None = None, to_dt: datetime | None = None):
+    if _ACTIVE_TOOL == 'codex':
+        from .codex_parser import stream_sessions
+        return stream_sessions(from_dt=from_dt, to_dt=to_dt)
+    from .parser import stream_sessions
+    return stream_sessions(from_dt=from_dt, to_dt=to_dt)
+
+
+def _list_projects():
+    if _ACTIVE_TOOL == 'codex':
+        from .codex_parser import list_projects
+        return list_projects()
+    from .parser import list_projects
+    return list_projects()
 
 
 def _today_range() -> tuple[datetime, datetime]:
@@ -79,12 +105,17 @@ def _resolve_period(
 
 
 def _run_report(from_dt: datetime, to_dt: datetime) -> AggregateResult:
-    turns = stream_turns(from_dt=from_dt, to_dt=to_dt)
+    turns = _stream_turns(from_dt=from_dt, to_dt=to_dt)
     return aggregate_turns(turns)
 
 
 @app.callback(invoke_without_command=True)
-def main(ctx: typer.Context) -> None:
+def main(
+    ctx: typer.Context,
+    tool: Annotated[str, typer.Option('--tool', '-t', help='claude|codex')] = 'claude',
+) -> None:
+    global _ACTIVE_TOOL
+    _ACTIVE_TOOL = tool.lower()
     if ctx.invoked_subcommand is None:
         _launch_tui()
 
@@ -103,7 +134,7 @@ def today() -> None:
     from_dt, to_dt = _today_range()
     result = _run_report(from_dt, to_dt)
 
-    console.print(f'\n[bold]Today ({from_dt.strftime("%Y-%m-%d")})[/bold]\n')
+    console.print(f'\n[bold]{_TOOL_LABEL.get(_ACTIVE_TOOL, _ACTIVE_TOOL.upper())}  Today ({from_dt.strftime("%Y-%m-%d")})[/bold]\n')
     console.print(f'Total tokens: [bold]{result.totals.usage.total:,}[/bold]')
     console.print(f'  Input:       {result.totals.usage.input:,}')
     console.print(f'  Output:      {result.totals.usage.output:,}')
@@ -123,7 +154,7 @@ def month() -> None:
     from_dt, to_dt = _month_range()
     result = _run_report(from_dt, to_dt)
 
-    console.print(f'\n[bold]This Month ({from_dt.strftime("%Y-%m")})[/bold]\n')
+    console.print(f'\n[bold]{_TOOL_LABEL.get(_ACTIVE_TOOL, _ACTIVE_TOOL.upper())}  This Month ({from_dt.strftime("%Y-%m")})[/bold]\n')
     console.print(f'Total tokens: [bold]{result.totals.usage.total:,}[/bold]')
     console.print(f'  Input:       {result.totals.usage.input:,}')
     console.print(f'  Output:      {result.totals.usage.output:,}')
@@ -164,7 +195,7 @@ def report(
 
         result = _run_report(from_dt, to_dt)
         console.clear()
-        console.print(f'\n[bold]Report: {period} ({from_dt.date()} to {to_dt.date()})[/bold]\n')
+        console.print(f'\n[bold]{_TOOL_LABEL.get(_ACTIVE_TOOL, _ACTIVE_TOOL.upper())}  Report: {period} ({from_dt.date()} to {to_dt.date()})[/bold]\n')
         console.print(f'Total tokens: [bold]{result.totals.usage.total:,}[/bold]  Turns: {result.totals.turn_count:,}\n')
 
         if result.by_day:
@@ -292,7 +323,7 @@ def project(
     to_date: Annotated[str | None, typer.Option('--to', help='YYYY-MM-DD')] = None,
 ) -> None:
     '''Token breakdown for a specific project: by day, activity, and tool.'''
-    projects = list_projects()
+    projects = _list_projects()
     if not projects:
         console.print('[red]No projects found.[/red]')
         raise typer.Exit(1)
@@ -328,7 +359,7 @@ def project(
     else:
         from_dt, to_dt = _days_range(7)
 
-    turns = (t for t in stream_turns(from_dt=from_dt, to_dt=to_dt) if t.project == selected)
+    turns = (t for t in _stream_turns(from_dt=from_dt, to_dt=to_dt) if t.project == selected)
     result = aggregate_turns(turns)
 
     if result.totals.turn_count == 0:
@@ -355,7 +386,7 @@ def patterns(
     )
 
     from_dt, to_dt = _resolve_period(period, from_date, to_date)
-    turns = list(stream_turns(from_dt=from_dt, to_dt=to_dt))
+    turns = list(_stream_turns(from_dt=from_dt, to_dt=to_dt))
 
     candidates = shell_automation_candidates(turns, min_count=min_count)
     if candidates:
@@ -424,7 +455,7 @@ def workflow(
     from .patterns import activity_transitions, session_ramp_stats
 
     from_dt, to_dt = _resolve_period(period, from_date, to_date)
-    sessions = list(stream_sessions(from_dt=from_dt, to_dt=to_dt))
+    sessions = list(_stream_sessions(from_dt=from_dt, to_dt=to_dt))
 
     transitions = activity_transitions(sessions)
     if transitions:
@@ -461,7 +492,7 @@ def growth(
     from .patterns import growth_signals
 
     from_dt, to_dt = _resolve_period(period, from_date, to_date)
-    turns = list(stream_turns(from_dt=from_dt, to_dt=to_dt))
+    turns = list(_stream_turns(from_dt=from_dt, to_dt=to_dt))
 
     signals = growth_signals(turns)
     if signals:
@@ -488,7 +519,7 @@ def models(
     from .patterns import model_activity_breakdown, model_efficiency_signals, project_model_breakdown
 
     from_dt, to_dt = _resolve_period(period, from_date, to_date)
-    turns = list(stream_turns(from_dt=from_dt, to_dt=to_dt))
+    turns = list(_stream_turns(from_dt=from_dt, to_dt=to_dt))
 
     stats = model_activity_breakdown(turns)
     if not stats:
@@ -558,7 +589,7 @@ def semantic(
 ) -> None:
     '''Semantic intent clustering of user prompts. Requires: pip install "token-burn[semantic]"'''
     from_dt, to_dt = _resolve_period(period, from_date, to_date)
-    turns = list(stream_turns(from_dt=from_dt, to_dt=to_dt))
+    turns = list(_stream_turns(from_dt=from_dt, to_dt=to_dt))
 
     if project:
         turns = [t for t in turns if t.project == project]
@@ -660,7 +691,6 @@ def full_report(
     from .aggregate import aggregate_turns
     from .bundle import source_context
     from .html_report import generate as generate_html
-    from .parser import stream_sessions
     from .report import generate
 
     labels_config: dict[str, str] | None = None
@@ -680,8 +710,8 @@ def full_report(
     from_dt, to_dt = _resolve_period(period, from_date, to_date)
 
     def _run() -> tuple[str, str | None]:
-        turns = list(stream_turns(from_dt=from_dt, to_dt=to_dt))
-        sessions = list(stream_sessions(from_dt=from_dt, to_dt=to_dt))
+        turns = list(_stream_turns(from_dt=from_dt, to_dt=to_dt))
+        sessions = list(_stream_sessions(from_dt=from_dt, to_dt=to_dt))
         result = aggregate_turns(iter(turns))
         kwargs = dict(
             turns=turns,
@@ -694,6 +724,7 @@ def full_report(
             labels_config=labels_config,
             summarize_config=summarize_config,
             force_summary=force_new,
+            tool_label=_TOOL_LABEL.get(_ACTIVE_TOOL, _ACTIVE_TOOL.upper()),
         )
         md = generate(**kwargs)
         html = generate_html(**kwargs) if html_output else None

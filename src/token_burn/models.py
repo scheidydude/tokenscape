@@ -1,6 +1,13 @@
 import re
 
 _PATTERNS: list[tuple[re.Pattern[str], str]] = [
+    (re.compile(r'gpt-5\.5'), 'GPT-5.5'),
+    (re.compile(r'gpt-5\.4-mini'), 'GPT-5.4 Mini'),
+    (re.compile(r'gpt-5\.4'), 'GPT-5.4'),
+    (re.compile(r'gpt-5'), 'GPT-5'),
+    (re.compile(r'gpt-4o-mini'), 'GPT-4o Mini'),
+    (re.compile(r'gpt-4o'), 'GPT-4o'),
+    (re.compile(r'gpt-4'), 'GPT-4'),
     (re.compile(r'claude-opus-4-7'), 'Opus 4.7'),
     (re.compile(r'claude-opus-4-6'), 'Opus 4.6'),
     (re.compile(r'claude-opus-4-5'), 'Opus 4.5'),

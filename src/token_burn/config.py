@@ -15,6 +15,11 @@ def claude_desktop_sessions_dir() -> Path | None:
     return p if p.exists() else None
 
 
+def codex_sessions_dir() -> Path | None:
+    p = Path.home() / '.codex' / 'sessions'
+    return p if p.exists() else None
+
+
 def load_provider_config() -> dict[str, str] | None:
     xdg = os.environ.get('XDG_CONFIG_HOME', str(Path.home() / '.config'))
     path = Path(xdg) / 'token-burn' / 'config.toml'

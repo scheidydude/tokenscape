@@ -98,6 +98,7 @@ def generate(
     labels_config: dict[str, str] | None = None,
     summarize_config: dict[str, str] | None = None,
     force_summary: bool = False,
+    tool_label: str = 'CLAUDE',
 ) -> str:
     now = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')
 
@@ -340,6 +341,7 @@ def generate(
         chart_data=chart_data,
         activity_colors_js=activity_colors_js,
         proj_chart_data=proj_chart_data,
+        tool_label=_esc(tool_label),
     )
 
 
@@ -348,7 +350,7 @@ _TEMPLATE = '''<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>token-burn · {period_label} · {from_date} to {to_date}</title>
+<title>token-burn · {tool_label} · {period_label} · {from_date} to {to_date}</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" integrity="sha384-DhxhYObIMeMNGyAG7iK11OHzBIKyEIeRL0ad1iFPAOwZB8iirUlTT0O/WJJUk8+o" crossorigin="anonymous"></script>
 <style>
 :root {{
@@ -508,7 +510,7 @@ body {{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-seri
 
 <main id="main">
   <div class="page-header">
-    <h1>token-burn report — {period_label}</h1>
+    <h1>token-burn report — {tool_label} · {period_label}</h1>
     <div class="meta">{from_date} → {to_date} · Generated {generated}</div>
   </div>
 

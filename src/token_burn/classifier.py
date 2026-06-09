@@ -5,8 +5,8 @@ from enum import Enum
 
 from .types import Turn
 
-_EDIT_TOOLS = {'Edit', 'Write'}
-_EXPLORE_TOOLS = {'Read', 'Grep', 'Glob', 'WebSearch', 'WebFetch'}
+_EDIT_TOOLS = {'Edit', 'Write', 'apply_patch', 'write_file', 'patch_apply', 'NotebookEdit'}
+_EXPLORE_TOOLS = {'Read', 'Grep', 'Glob', 'WebSearch', 'WebFetch', 'read_file', 'search_files'}
 _PLAN_TOOLS = {'EnterPlanMode', 'TaskCreate'}
 _DELEGATE_TOOLS = {'Agent', 'Task'}
 
