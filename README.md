@@ -42,6 +42,8 @@ token-burn bundle                  # create a zip of session data to share with 
 token-burn full-report             # full markdown report to stdout (all commands in one pass)
 token-burn full-report --source teammate-bundle-20260531.zip
 token-burn full-report --top 10 --output report.md
+token-burn full-report --html-output report.html        # interactive HTML report
+token-burn full-report --output report.md --html-output report.html  # both at once
 token-burn full-report --summarize --output report.md   # append AI Insights section via LLM
 token-burn full-report --summarize --force-new          # bypass cached summary
 token-burn patterns                # shell automation candidates + hottest files + user prompt patterns
@@ -121,6 +123,7 @@ Beyond token cost, these commands answer: *what do you repeatedly ask Claude to 
 | `models` | Which models do what, and is that efficient? | < 2s |
 | `semantic` | What are my real recurring intents? | 5–30s first run, < 2s cached |
 | `full-report` | All of the above as a single markdown document | < 5s (+ semantic if installed) |
+| `full-report --html-output` | All of the above as an interactive HTML report | < 5s (+ semantic if installed) |
 | `full-report --summarize` | All of the above + AI-generated insights section | depends on LLM |
 
 A useful sequence: run `semantic` to find your top intent clusters, cross-reference with `patterns` to see the mechanical steps that accompany them, check `growth` for coverage or documentation gaps in those projects, and use `workflow` to see where in a session those patterns tend to occur.
@@ -235,12 +238,16 @@ token-burn full-report                        # 30-day default, stdout
 token-burn full-report -p 7days               # shorter window
 token-burn full-report --top 12               # more rows per table (default 8)
 token-burn full-report --labels               # LLM cluster labels (requires config)
-token-burn full-report --output report.md     # write to file
+token-burn full-report --output report.md     # write markdown to file
+token-burn full-report --html-output report.html             # write interactive HTML report
+token-burn full-report --output report.md --html-output report.html  # both at once
 token-burn full-report --summarize            # append AI Insights section (requires config)
 token-burn full-report --summarize --force-new  # bypass cached summary
 ```
 
-Runs all analysis in a single pass and emits a markdown document with sections for: summary, projects, workflow transitions + session ramp, growth signals, model efficiency + by-project model breakdown, patterns (shell commands, hottest files, prompt verbs, bigrams), and intent clusters if `[semantic]` is installed. Status/warning messages go to stderr so `token-burn full-report > report.md` works cleanly.
+Runs all analysis in a single pass. Emits a markdown document (or interactive HTML report, or both) covering: summary, projects, workflow transitions + session ramp, growth signals, model efficiency + by-project model breakdown, patterns (shell commands, hottest files, prompt verbs, bigrams), and intent clusters if `[semantic]` is installed. Status/warning messages go to stderr so `token-burn full-report > report.md` works cleanly.
+
+**HTML report (`--html-output`)** — Generates a self-contained interactive HTML file alongside (or instead of) the markdown report. Includes all the same sections rendered with sortable tables, stacked activity-bar charts, and Chart.js bar charts for project token/turn breakdowns and model activity mix. Features a collapsible sidebar with scroll-aware navigation and a dark/light mode toggle. No server required — open the file directly in any browser.
 
 **AI Insights (`--summarize`)** — Appends a `## AI Insights` section written by an LLM, covering four areas: usage patterns, token efficiency, model selection, and recommended actions. The LLM receives a structured JSON summary of the report data (no raw prompts) and responds with a 200–300 word analysis referencing your actual numbers. Requires the same `[provider]` config as `--labels`. Results are cached in `~/.cache/token-burn/summaries.json` keyed by model + report data — re-runs with the same data make no API call. Use `--force-new` to bypass the cache (e.g. after switching models).
 

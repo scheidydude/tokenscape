@@ -651,6 +651,7 @@ def full_report(
     summarize: Annotated[bool, typer.Option('--summarize', help='Append AI Insights section via LLM (requires ~/.config/token-burn/config.toml)')] = False,
     force_new: Annotated[bool, typer.Option('--force-new', help='Bypass summary cache and regenerate AI Insights')] = False,
     output: Annotated[str | None, typer.Option('--output', '-o', help='Write to file instead of stdout')] = None,
+    html_output: Annotated[str | None, typer.Option('--html-output', help='Also write an interactive HTML report to this path')] = None,
     source: Annotated[str | None, typer.Option('--source', help='Analyze a bundle zip or directory instead of ~/.claude')] = None,
 ) -> None:
     '''Generate a full markdown report covering all analysis commands.'''
@@ -658,6 +659,7 @@ def full_report(
 
     from .aggregate import aggregate_turns
     from .bundle import source_context
+    from .html_report import generate as generate_html
     from .parser import stream_sessions
     from .report import generate
 
@@ -677,11 +679,11 @@ def full_report(
 
     from_dt, to_dt = _resolve_period(period, from_date, to_date)
 
-    def _run() -> str:
+    def _run() -> tuple[str, str | None]:
         turns = list(stream_turns(from_dt=from_dt, to_dt=to_dt))
         sessions = list(stream_sessions(from_dt=from_dt, to_dt=to_dt))
         result = aggregate_turns(iter(turns))
-        return generate(
+        kwargs = dict(
             turns=turns,
             sessions=sessions,
             result=result,
@@ -693,12 +695,15 @@ def full_report(
             summarize_config=summarize_config,
             force_summary=force_new,
         )
+        md = generate(**kwargs)
+        html = generate_html(**kwargs) if html_output else None
+        return md, html
 
     if source:
         with source_context(source):
-            md = _run()
+            md, html = _run()
     else:
-        md = _run()
+        md, html = _run()
 
     if output:
         from pathlib import Path
@@ -706,6 +711,11 @@ def full_report(
         Console(stderr=True).print(f'[green]Report written to {output}[/green]')
     else:
         print(md, end='')
+
+    if html_output and html:
+        from pathlib import Path
+        Path(html_output).write_text(html)
+        Console(stderr=True).print(f'[green]HTML report written to {html_output}[/green]')
 
 
 @app.command()
