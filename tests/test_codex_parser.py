@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from token_burn.codex_parser import _project_name, _stream_jsonl, _stream_turns_from_path
+from hindsight.codex_parser import _project_name, _stream_jsonl, _stream_turns_from_path
 
 FIXTURE = Path(__file__).parent / 'fixtures' / 'sample-codex-session.jsonl'
 
@@ -102,14 +102,14 @@ def test_date_filter_excludes_future():
 
 
 def test_stream_turns_and_sessions(monkeypatch):
-    import token_burn.codex_parser as codex_mod
+    import hindsight.codex_parser as codex_mod
 
     def mock_iter():
         yield FIXTURE
 
     monkeypatch.setattr(codex_mod, '_iter_codex_session_files', mock_iter)
 
-    from token_burn.codex_parser import stream_sessions, stream_turns
+    from hindsight.codex_parser import stream_sessions, stream_turns
     turns = list(stream_turns())
     assert len(turns) == 2
 

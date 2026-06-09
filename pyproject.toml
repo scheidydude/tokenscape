@@ -3,9 +3,9 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "token-burn"
+name = "hindsight"
 version = "0.3.1"
-description = "AI token usage CLI and TUI (Claude Code)"
+description = "AI token usage CLI and TUI (Claude Code + Codex)"
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.11"
@@ -23,10 +23,10 @@ semantic = [
 ]
 
 [project.scripts]
-token-burn = "token_burn.cli:app"
+hindsight = "hindsight.cli:app"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/token_burn"]
+packages = ["src/hindsight"]
 
 [tool.ruff]
 src = ["src"]

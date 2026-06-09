@@ -54,7 +54,7 @@ def generate(
 
     now = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')
     parts.append(
-        f'# token-burn report — {tool_label} · {period_label} ({from_dt.date()} to {to_dt.date()})\n'
+        f'# hindsight report — {tool_label} · {period_label} ({from_dt.date()} to {to_dt.date()})\n'
         f'*Generated {now}*'
     )
 
@@ -263,6 +263,6 @@ def generate(
                 parts.append(f'## AI Insights\n\n{ai_text}')
         except Exception as e:
             import sys
-            print(f'[token-burn] AI Insights error: {e!r}', file=sys.stderr)
+            print(f'[hindsight] AI Insights error: {e!r}', file=sys.stderr)
 
     return '\n\n'.join(parts) + '\n'

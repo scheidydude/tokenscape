@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from token_burn.patterns import (
+from hindsight.patterns import (
     GrowthSignal,
     _normalize_cmd,
     activity_transitions,
@@ -13,7 +13,7 @@ from token_burn.patterns import (
     session_ramp_stats,
     shell_automation_candidates,
 )
-from token_burn.types import TokenUsage, Turn
+from hindsight.types import TokenUsage, Turn
 
 _TS = datetime(2026, 1, 1, tzinfo=timezone.utc)
 _USAGE = TokenUsage(input=100, output=50, cache_read=0, cache_write=0)
@@ -88,7 +88,7 @@ def test_file_edit_frequency():
 
 
 def test_activity_transitions():
-    from token_burn.classifier import Activity
+    from hindsight.classifier import Activity
     # Two sessions: Exploration → Coding, Exploration → Coding
     t_explore = _turn(tools=['Read'])
     t_code = _turn(tools=['Edit'], text='add feature')

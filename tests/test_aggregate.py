@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from token_burn.aggregate import aggregate_turns
-from token_burn.types import TokenUsage, Turn
+from hindsight.aggregate import aggregate_turns
+from hindsight.types import TokenUsage, Turn
 
 
 def _turn(mid: str, project: str, model: str, tools: list[str], usage: TokenUsage) -> Turn:

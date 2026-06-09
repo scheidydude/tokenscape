@@ -22,7 +22,7 @@ def codex_sessions_dir() -> Path | None:
 
 def load_provider_config() -> dict[str, str] | None:
     xdg = os.environ.get('XDG_CONFIG_HOME', str(Path.home() / '.config'))
-    path = Path(xdg) / 'token-burn' / 'config.toml'
+    path = Path(xdg) / 'hindsight' / 'config.toml'
     if not path.exists():
         return None
     try:
