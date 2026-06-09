@@ -115,7 +115,7 @@ class SummaryWidget(Static):
         cache_pct = (u.cache_read / denom * 100) if denom > 0 else 0.0
         tool_color = '#00cc66' if tool_label == 'CODEX' else '#4db8ff'
         t = Text()
-        t.append('hindsight', style='bold #f5c040')
+        t.append('tokenscape', style='bold #f5c040')
         t.append(f'  [{tool_label}]', style=f'bold {tool_color}')
         t.append(f'  {period_label}\n', style='#707070')
         t.append(f'{format_tokens(u.total):>8} total', style='bold #d0d0d0')
@@ -272,8 +272,8 @@ PanelWidget.magenta { border: solid #cc44cc; }
 """
 
 
-class HindsightApp(App[None]):
-    TITLE = 'hindsight'
+class TokenscapeApp(App[None]):
+    TITLE = 'tokenscape'
     CSS = _CSS
 
     def __init__(self, tool: str = 'claude', **kwargs: object) -> None:

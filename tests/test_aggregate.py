@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from hindsight.aggregate import aggregate_turns
-from hindsight.types import TokenUsage, Turn
+from tokenscape.aggregate import aggregate_turns
+from tokenscape.types import TokenUsage, Turn
 
 
 def _turn(mid: str, project: str, model: str, tools: list[str], usage: TokenUsage) -> Turn:

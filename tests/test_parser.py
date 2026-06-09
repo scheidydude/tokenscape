@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from hindsight.parser import _is_injected_content, _parse_iso, _project_name, _stream_jsonl
+from tokenscape.parser import _is_injected_content, _parse_iso, _project_name, _stream_jsonl
 
 
 def test_parse_iso_utc():
@@ -34,14 +34,14 @@ def test_stream_jsonl_dedup(tmp_path: Path):
 def test_stream_turns_dedup(tmp_path: Path, monkeypatch):
     fixture = Path(__file__).parent / 'fixtures' / 'sample-session.jsonl'
 
-    import hindsight.parser as parser_mod
+    import tokenscape.parser as parser_mod
 
     def mock_iter():
         yield fixture
 
     monkeypatch.setattr(parser_mod, '_iter_session_files', mock_iter)
 
-    from hindsight.parser import stream_turns
+    from tokenscape.parser import stream_turns
     turns = list(stream_turns())
     ids = [t.message_id for t in turns]
     # msg_01 appears twice in fixture but should only be counted once
@@ -70,14 +70,14 @@ def test_is_injected_content_shell_prompt():
 def test_stream_turns_token_values(monkeypatch):
     fixture = Path(__file__).parent / 'fixtures' / 'sample-session.jsonl'
 
-    import hindsight.parser as parser_mod
+    import tokenscape.parser as parser_mod
 
     def mock_iter():
         yield fixture
 
     monkeypatch.setattr(parser_mod, '_iter_session_files', mock_iter)
 
-    from hindsight.parser import stream_turns
+    from tokenscape.parser import stream_turns
     turns = {t.message_id: t for t in stream_turns()}
     t1 = turns['msg_01']
     assert t1.usage.input == 1000

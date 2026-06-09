@@ -189,7 +189,7 @@ def generate(
                 ai_html = f'<div class="ai-body"><p>{ai_safe}</p></div>'
         except Exception as e:
             import sys
-            print(f'[hindsight] AI Insights error: {e!r}', file=sys.stderr)
+            print(f'[tokenscape] AI Insights error: {e!r}', file=sys.stderr)
 
     # ── Intent Clusters (optional) ────────────────────────────────────────────
     clusters_html = ''
@@ -350,7 +350,7 @@ _TEMPLATE = '''<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>hindsight · {tool_label} · {period_label} · {from_date} to {to_date}</title>
+<title>tokenscape · {tool_label} · {period_label} · {from_date} to {to_date}</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" integrity="sha384-DhxhYObIMeMNGyAG7iK11OHzBIKyEIeRL0ad1iFPAOwZB8iirUlTT0O/WJJUk8+o" crossorigin="anonymous"></script>
 <style>
 :root {{
@@ -492,7 +492,7 @@ body {{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-seri
 <body>
 
 <nav id="sidebar">
-  <div class="sidebar-logo">hindsight<span>{period_label} · {from_date}</span></div>
+  <div class="sidebar-logo">tokenscape<span>{period_label} · {from_date}</span></div>
   <span class="nav-section">Overview</span>
   <a class="nav-item" href="#summary">Summary</a>
   <a class="nav-item" href="#projects">Projects</a>
@@ -510,7 +510,7 @@ body {{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-seri
 
 <main id="main">
   <div class="page-header">
-    <h1>hindsight report — {tool_label} · {period_label}</h1>
+    <h1>tokenscape report — {tool_label} · {period_label}</h1>
     <div class="meta">{from_date} → {to_date} · Generated {generated}</div>
   </div>
 

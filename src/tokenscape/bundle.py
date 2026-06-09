@@ -14,7 +14,7 @@ from .config import claude_desktop_sessions_dir, claude_projects_dir
 def create(output_path: Path | None = None) -> tuple[Path, int, int]:
     if output_path is None:
         date = datetime.now().strftime('%Y%m%d')
-        output_path = Path.cwd() / f'hindsight-bundle-{date}.zip'
+        output_path = Path.cwd() / f'tokenscape-bundle-{date}.zip'
 
     projects = claude_projects_dir()
     desktop = claude_desktop_sessions_dir()
@@ -36,11 +36,11 @@ def create(output_path: Path | None = None) -> tuple[Path, int, int]:
 
 @contextmanager
 def source_context(source: str) -> Generator[Path, None, None]:
-    import hindsight.parser as parser_mod
+    import tokenscape.parser as parser_mod
 
     tmp_dir: Path | None = None
     if source.lower().endswith('.zip'):
-        tmp_dir = Path(tempfile.mkdtemp(prefix='hindsight-'))
+        tmp_dir = Path(tempfile.mkdtemp(prefix='tokenscape-'))
         with zipfile.ZipFile(source) as zf:
             zf.extractall(tmp_dir)
         source_dir = tmp_dir

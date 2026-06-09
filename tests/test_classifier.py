@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from hindsight.classifier import Activity, classify
-from hindsight.types import TokenUsage, Turn
+from tokenscape.classifier import Activity, classify
+from tokenscape.types import TokenUsage, Turn
 
 
 def _turn(tools: list[str], text: str = '') -> Turn:

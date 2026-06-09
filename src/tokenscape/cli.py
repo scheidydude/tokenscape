@@ -122,8 +122,8 @@ def main(
 
 def _launch_tui() -> None:
     try:
-        from .dashboard import HindsightApp
-        HindsightApp(tool=_ACTIVE_TOOL).run()
+        from .dashboard import TokenscapeApp
+        TokenscapeApp(tool=_ACTIVE_TOOL).run()
     except ImportError:
         console.print('[yellow]TUI not available. Use subcommands: today, report, status, export[/yellow]')
 
@@ -585,9 +585,9 @@ def semantic(
     to_date: Annotated[str | None, typer.Option('--to', help='YYYY-MM-DD')] = None,
     k: Annotated[int | None, typer.Option('-k', help='Cluster count (auto-selected by default)')] = None,
     project: Annotated[str | None, typer.Option('--project', help='Scope to one project')] = None,
-    use_labels: Annotated[bool, typer.Option('--labels', help='Generate cluster labels via LLM (requires ~/.config/hindsight/config.toml)')] = False,
+    use_labels: Annotated[bool, typer.Option('--labels', help='Generate cluster labels via LLM (requires ~/.config/tokenscape/config.toml)')] = False,
 ) -> None:
-    '''Semantic intent clustering of user prompts. Requires: pip install "hindsight[semantic]"'''
+    '''Semantic intent clustering of user prompts. Requires: pip install "tokenscape[semantic]"'''
     from_dt, to_dt = _resolve_period(period, from_date, to_date)
     turns = list(_stream_turns(from_dt=from_dt, to_dt=to_dt))
 
@@ -604,13 +604,13 @@ def semantic(
         from .config import load_provider_config
         labels_config = load_provider_config()
         if labels_config is None:
-            console.print('[yellow]--labels: no config found. Create ~/.config/hindsight/config.toml with a [provider] section.[/yellow]')
+            console.print('[yellow]--labels: no config found. Create ~/.config/tokenscape/config.toml with a [provider] section.[/yellow]')
 
     try:
         from .semantic import _MODEL, analyze, label_cluster
     except ModuleNotFoundError:
         console.print('[red]Semantic analysis requires extra dependencies:[/red]')
-        console.print('  pip install "hindsight[semantic]"')
+        console.print('  pip install "tokenscape[semantic]"')
         raise typer.Exit(1)
 
     console.print(f'[dim]Embedding {n_prompts} prompts ({_MODEL})…[/dim]')
@@ -619,7 +619,7 @@ def semantic(
         examples, counts, k_used = analyze(turns, k=k)
     except ModuleNotFoundError:
         console.print('[red]Missing dependencies. Run:[/red]')
-        console.print('  pip install "hindsight[semantic]"')
+        console.print('  pip install "tokenscape[semantic]"')
         raise typer.Exit(1)
 
     if not examples:
@@ -653,7 +653,7 @@ def semantic(
 
 @app.command('bundle')
 def bundle(
-    output: Annotated[str | None, typer.Option('--output', '-o', help='Output zip path (default: hindsight-bundle-YYYYMMDD.zip)')] = None,
+    output: Annotated[str | None, typer.Option('--output', '-o', help='Output zip path (default: tokenscape-bundle-YYYYMMDD.zip)')] = None,
 ) -> None:
     '''Create a zip bundle of session data to share with teammates.'''
     from pathlib import Path
@@ -669,7 +669,7 @@ def bundle(
     size_str = f'{size_bytes / 1_048_576:.1f} MB' if size_bytes >= 1_048_576 else f'{size_kb:.0f} KB'
     console.print(f'[green]Created {path.name}[/green]  {file_count} session files  {size_str}')
     console.print(f'\nTeammates can analyze it with:')
-    console.print(f'  hindsight full-report --source {path.name}')
+    console.print(f'  tokenscape full-report --source {path.name}')
 
 
 @app.command('full-report')
@@ -678,8 +678,8 @@ def full_report(
     from_date: Annotated[str | None, typer.Option('--from', help='YYYY-MM-DD')] = None,
     to_date: Annotated[str | None, typer.Option('--to', help='YYYY-MM-DD')] = None,
     top: Annotated[int, typer.Option('--top', help='Max rows per table section')] = 8,
-    use_labels: Annotated[bool, typer.Option('--labels', help='Generate cluster labels via LLM (requires ~/.config/hindsight/config.toml)')] = False,
-    summarize: Annotated[bool, typer.Option('--summarize', help='Append AI Insights section via LLM (requires ~/.config/hindsight/config.toml)')] = False,
+    use_labels: Annotated[bool, typer.Option('--labels', help='Generate cluster labels via LLM (requires ~/.config/tokenscape/config.toml)')] = False,
+    summarize: Annotated[bool, typer.Option('--summarize', help='Append AI Insights section via LLM (requires ~/.config/tokenscape/config.toml)')] = False,
     force_new: Annotated[bool, typer.Option('--force-new', help='Bypass summary cache and regenerate AI Insights')] = False,
     output: Annotated[str | None, typer.Option('--output', '-o', help='Write to file instead of stdout')] = None,
     html_output: Annotated[str | None, typer.Option('--html-output', help='Also write an interactive HTML report to this path')] = None,
@@ -698,14 +698,14 @@ def full_report(
         from .config import load_provider_config
         labels_config = load_provider_config()
         if labels_config is None:
-            console.print('[yellow]--labels: no config found. Create ~/.config/hindsight/config.toml with a [provider] section.[/yellow]', file=sys.stderr)
+            console.print('[yellow]--labels: no config found. Create ~/.config/tokenscape/config.toml with a [provider] section.[/yellow]', file=sys.stderr)
 
     summarize_config: dict[str, str] | None = None
     if summarize:
         from .config import load_provider_config
         summarize_config = load_provider_config()
         if summarize_config is None:
-            console.print('[yellow]--summarize: no config found. Create ~/.config/hindsight/config.toml with a [provider] section.[/yellow]', file=sys.stderr)
+            console.print('[yellow]--summarize: no config found. Create ~/.config/tokenscape/config.toml with a [provider] section.[/yellow]', file=sys.stderr)
 
     from_dt, to_dt = _resolve_period(period, from_date, to_date)
 

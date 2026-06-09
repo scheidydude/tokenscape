@@ -11,9 +11,9 @@ import numpy as np
 
 from .types import Turn
 
-_CACHE_PATH = Path.home() / '.cache' / 'hindsight' / 'embeddings.npz'
-_LABEL_CACHE_PATH = Path.home() / '.cache' / 'hindsight' / 'labels.json'
-_SUMMARY_CACHE_PATH = Path.home() / '.cache' / 'hindsight' / 'summaries.json'
+_CACHE_PATH = Path.home() / '.cache' / 'tokenscape' / 'embeddings.npz'
+_LABEL_CACHE_PATH = Path.home() / '.cache' / 'tokenscape' / 'labels.json'
+_SUMMARY_CACHE_PATH = Path.home() / '.cache' / 'tokenscape' / 'summaries.json'
 _MODEL = 'BAAI/bge-small-en-v1.5'
 
 
