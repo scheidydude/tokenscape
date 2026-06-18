@@ -7,7 +7,7 @@ name = "tokenscape"
 version = "0.3.1"
 description = "AI token usage CLI and TUI (Claude Code + Codex)"
 readme = "README.md"
-license = { text = "MIT" }
+license = { text = "Apache-2.0" }
 requires-python = ">=3.11"
 dependencies = [
     "typer>=0.12",
