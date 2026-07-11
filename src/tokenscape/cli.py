@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Annotated
 
 import typer
@@ -43,19 +43,19 @@ def _list_projects():
 
 
 def _today_range() -> tuple[datetime, datetime]:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     start = now.replace(hour=0, minute=0, second=0, microsecond=0)
     return start, now
 
 
 def _days_range(n: int) -> tuple[datetime, datetime]:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     start = (now - timedelta(days=n - 1)).replace(hour=0, minute=0, second=0, microsecond=0)
     return start, now
 
 
 def _month_range() -> tuple[datetime, datetime]:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     return start, now
 
@@ -90,8 +90,8 @@ def _resolve_period(
 ) -> tuple[datetime, datetime]:
     if from_date and to_date:
         return (
-            datetime.fromisoformat(from_date).replace(tzinfo=timezone.utc),
-            datetime.fromisoformat(to_date).replace(tzinfo=timezone.utc),
+            datetime.fromisoformat(from_date).replace(tzinfo=UTC),
+            datetime.fromisoformat(to_date).replace(tzinfo=UTC),
         )
     if period == 'today':
         return _today_range()
@@ -182,8 +182,8 @@ def report(
 
     def _run() -> None:
         if from_date and to_date:
-            from_dt = datetime.fromisoformat(from_date).replace(tzinfo=timezone.utc)
-            to_dt = datetime.fromisoformat(to_date).replace(tzinfo=timezone.utc)
+            from_dt = datetime.fromisoformat(from_date).replace(tzinfo=UTC)
+            to_dt = datetime.fromisoformat(to_date).replace(tzinfo=UTC)
         elif period == 'today':
             from_dt, to_dt = _today_range()
         elif period == 'month':
@@ -348,8 +348,8 @@ def project(
         return
 
     if from_date and to_date:
-        from_dt = datetime.fromisoformat(from_date).replace(tzinfo=timezone.utc)
-        to_dt = datetime.fromisoformat(to_date).replace(tzinfo=timezone.utc)
+        from_dt = datetime.fromisoformat(from_date).replace(tzinfo=UTC)
+        to_dt = datetime.fromisoformat(to_date).replace(tzinfo=UTC)
     elif period == 'today':
         from_dt, to_dt = _today_range()
     elif period == 'month':
@@ -516,7 +516,11 @@ def models(
 ) -> None:
     '''Model usage breakdown by activity type and efficiency signals.'''
     from .format import format_tokens
-    from .patterns import model_activity_breakdown, model_efficiency_signals, project_model_breakdown
+    from .patterns import (
+        model_activity_breakdown,
+        model_efficiency_signals,
+        project_model_breakdown,
+    )
 
     from_dt, to_dt = _resolve_period(period, from_date, to_date)
     turns = list(_stream_turns(from_dt=from_dt, to_dt=to_dt))
@@ -668,7 +672,7 @@ def bundle(
     size_kb = size_bytes / 1024
     size_str = f'{size_bytes / 1_048_576:.1f} MB' if size_bytes >= 1_048_576 else f'{size_kb:.0f} KB'
     console.print(f'[green]Created {path.name}[/green]  {file_count} session files  {size_str}')
-    console.print(f'\nTeammates can analyze it with:')
+    console.print('\nTeammates can analyze it with:')
     console.print(f'  tokenscape full-report --source {path.name}')
 
 
@@ -686,7 +690,6 @@ def full_report(
     source: Annotated[str | None, typer.Option('--source', help='Analyze a bundle zip or directory instead of ~/.claude')] = None,
 ) -> None:
     '''Generate a full markdown report covering all analysis commands.'''
-    import sys
 
     from .aggregate import aggregate_turns
     from .bundle import source_context

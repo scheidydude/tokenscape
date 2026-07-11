@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from tokenscape.patterns import (
-    GrowthSignal,
     _normalize_cmd,
     activity_transitions,
     file_edit_frequency,
@@ -15,7 +14,7 @@ from tokenscape.patterns import (
 )
 from tokenscape.types import TokenUsage, Turn
 
-_TS = datetime(2026, 1, 1, tzinfo=timezone.utc)
+_TS = datetime(2026, 1, 1, tzinfo=UTC)
 _USAGE = TokenUsage(input=100, output=50, cache_read=0, cache_write=0)
 
 
@@ -88,7 +87,6 @@ def test_file_edit_frequency():
 
 
 def test_activity_transitions():
-    from tokenscape.classifier import Activity
     # Two sessions: Exploration → Coding, Exploration → Coding
     t_explore = _turn(tools=['Read'])
     t_code = _turn(tools=['Edit'], text='add feature')

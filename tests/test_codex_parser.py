@@ -1,8 +1,7 @@
 from __future__ import annotations
 
+from datetime import UTC
 from pathlib import Path
-
-import pytest
 
 from tokenscape.codex_parser import _project_name, _stream_jsonl, _stream_turns_from_path
 
@@ -85,8 +84,8 @@ def test_turn_timestamp():
 
 
 def test_date_filter_excludes_old():
-    from datetime import datetime, timezone
-    cutoff = datetime(2026, 6, 9, 10, 0, 30, tzinfo=timezone.utc)
+    from datetime import datetime
+    cutoff = datetime(2026, 6, 9, 10, 0, 30, tzinfo=UTC)
     turns = list(_stream_turns_from_path(FIXTURE, set(), from_dt=cutoff))
     # turn-01 starts at 10:00:01, turn-02 at 10:01:00 — only turn-02 passes
     assert len(turns) == 1
@@ -94,8 +93,8 @@ def test_date_filter_excludes_old():
 
 
 def test_date_filter_excludes_future():
-    from datetime import datetime, timezone
-    cutoff = datetime(2026, 6, 9, 10, 0, 30, tzinfo=timezone.utc)
+    from datetime import datetime
+    cutoff = datetime(2026, 6, 9, 10, 0, 30, tzinfo=UTC)
     turns = list(_stream_turns_from_path(FIXTURE, set(), to_dt=cutoff))
     assert len(turns) == 1
     assert turns[0].message_id == 'turn-01'

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from enum import Enum
+from enum import StrEnum
 
 from .types import Turn
 
@@ -11,7 +11,7 @@ _PLAN_TOOLS = {'EnterPlanMode', 'TaskCreate'}
 _DELEGATE_TOOLS = {'Agent', 'Task'}
 
 
-class Activity(str, Enum):
+class Activity(StrEnum):
     CODING = 'Coding'
     DEBUGGING = 'Debugging'
     FEATURE_DEV = 'Feature Dev'

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from tokenscape.classifier import Activity, classify
 from tokenscape.types import TokenUsage, Turn
@@ -9,7 +9,7 @@ from tokenscape.types import TokenUsage, Turn
 def _turn(tools: list[str], text: str = '') -> Turn:
     return Turn(
         message_id='x',
-        timestamp=datetime.now(timezone.utc),
+        timestamp=datetime.now(UTC),
         model='Sonnet 4.6',
         usage=TokenUsage(100, 50, 0, 0),
         tools_used=tools,

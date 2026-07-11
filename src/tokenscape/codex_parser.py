@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import re
 from collections.abc import Iterator
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from .config import codex_sessions_dir
@@ -17,7 +17,7 @@ def _parse_iso(ts: str) -> datetime:
     try:
         return datetime.fromisoformat(ts.replace('Z', '+00:00'))
     except ValueError:
-        return datetime.now(timezone.utc)
+        return datetime.now(UTC)
 
 
 def _project_name(cwd: str) -> str:
@@ -50,7 +50,7 @@ def list_projects() -> list[tuple[str, datetime]]:
     seen: dict[str, datetime] = {}
     for path in _iter_codex_session_files():
         try:
-            mtime = datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc)
+            mtime = datetime.fromtimestamp(path.stat().st_mtime, tz=UTC)
         except OSError:
             continue
         cwd = ''
@@ -107,7 +107,7 @@ def _stream_turns_from_path(
             )
         if usage.total == 0:
             return None
-        ts = current_ts or datetime.now(timezone.utc)
+        ts = current_ts or datetime.now(UTC)
         if from_dt and ts < from_dt:
             return None
         if to_dt and ts > to_dt:
@@ -144,7 +144,7 @@ def _stream_turns_from_path(
             if ptype == 'task_started':
                 current_turn_id = str(payload.get('turn_id', '') or '')
                 ts_raw = entry.get('timestamp', '')
-                current_ts = _parse_iso(str(ts_raw)) if ts_raw else datetime.now(timezone.utc)
+                current_ts = _parse_iso(str(ts_raw)) if ts_raw else datetime.now(UTC)
                 current_tokens = []
                 current_tools = []
                 current_bash = []

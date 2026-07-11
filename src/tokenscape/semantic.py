@@ -263,7 +263,7 @@ def analyze(
     for label in labels.tolist():
         counts[label] += 1
 
-    sorted_labels = sorted(counts, key=lambda l: -counts[l])
+    sorted_labels = sorted(counts, key=lambda lbl: -counts[lbl])
     return (
         {i: examples[lbl] for i, lbl in enumerate(sorted_labels)},
         {i: counts[lbl] for i, lbl in enumerate(sorted_labels)},

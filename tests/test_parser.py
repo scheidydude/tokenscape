@@ -1,10 +1,6 @@
 from __future__ import annotations
 
-import json
-from datetime import datetime, timezone
 from pathlib import Path
-
-import pytest
 
 from tokenscape.parser import _is_injected_content, _parse_iso, _project_name, _stream_jsonl
 

@@ -3,19 +3,18 @@ from __future__ import annotations
 import csv
 import json
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from rich.console import Console
 
 from .aggregate import aggregate_turns
 from .parser import stream_turns
-from .types import TokenUsage
 
 console = Console()
 
 
 def _period_range(label: str) -> tuple[datetime, datetime]:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     if label == 'today':
         start = now.replace(hour=0, minute=0, second=0, microsecond=0)
     elif label == '7d':

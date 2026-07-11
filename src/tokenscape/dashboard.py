@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from rich.text import Text
 from textual.app import App, ComposeResult
@@ -79,17 +79,17 @@ _BORDER_COLORS = {
 
 
 def _today_range() -> tuple[datetime, datetime]:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     return now.replace(hour=0, minute=0, second=0, microsecond=0), now
 
 
 def _days_range(n: int) -> tuple[datetime, datetime]:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     return (now - timedelta(days=n - 1)).replace(hour=0, minute=0, second=0, microsecond=0), now
 
 
 def _month_range() -> tuple[datetime, datetime]:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     return now.replace(day=1, hour=0, minute=0, second=0, microsecond=0), now
 
 

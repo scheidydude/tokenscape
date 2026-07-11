@@ -4,7 +4,7 @@ import re
 import statistics
 from collections import Counter, defaultdict
 from collections.abc import Iterable
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from .classifier import Activity, classify
 from .types import Turn

@@ -2,8 +2,7 @@ from __future__ import annotations
 
 import html
 import json
-from datetime import datetime, timezone
-from typing import TYPE_CHECKING
+from datetime import UTC, datetime
 
 from .aggregate import AggregateResult
 from .format import format_tokens
@@ -20,9 +19,6 @@ from .patterns import (
     shell_automation_candidates,
 )
 from .types import Turn
-
-if TYPE_CHECKING:
-    pass
 
 _ACTIVITY_COLORS = {
     'Coding': '#6366f1',
@@ -100,7 +96,7 @@ def generate(
     force_summary: bool = False,
     tool_label: str = 'CLAUDE',
 ) -> str:
-    now = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')
+    now = datetime.now(UTC).strftime('%Y-%m-%d %H:%M UTC')
 
     u = result.totals.usage
     denom = u.input + u.cache_read

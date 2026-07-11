@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from tokenscape.aggregate import aggregate_turns
 from tokenscape.types import TokenUsage, Turn
@@ -9,7 +9,7 @@ from tokenscape.types import TokenUsage, Turn
 def _turn(mid: str, project: str, model: str, tools: list[str], usage: TokenUsage) -> Turn:
     return Turn(
         message_id=mid,
-        timestamp=datetime.now(timezone.utc),
+        timestamp=datetime.now(UTC),
         model=model,
         usage=usage,
         tools_used=tools,

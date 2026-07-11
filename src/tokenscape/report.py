@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from typing import TYPE_CHECKING
+from datetime import UTC, datetime
 
 from .aggregate import AggregateResult
 from .format import format_tokens
@@ -18,9 +17,6 @@ from .patterns import (
     shell_automation_candidates,
 )
 from .types import Turn
-
-if TYPE_CHECKING:
-    pass
 
 
 def _md_table(headers: list[str], rows: list[list[str]]) -> str:
@@ -52,7 +48,7 @@ def generate(
 ) -> str:
     parts: list[str] = []
 
-    now = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')
+    now = datetime.now(UTC).strftime('%Y-%m-%d %H:%M UTC')
     parts.append(
         f'# tokenscape report — {tool_label} · {period_label} ({from_dt.date()} to {to_dt.date()})\n'
         f'*Generated {now}*'
