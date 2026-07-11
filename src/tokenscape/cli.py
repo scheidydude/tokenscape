@@ -604,7 +604,7 @@ def semantic(
         from .config import load_provider_config
         labels_config = load_provider_config()
         if labels_config is None:
-            console.print('[yellow]--labels: no config found. Create ~/.config/tokenscape/config.toml with a [provider] section.[/yellow]')
+            console.print('[yellow]--labels: no config found. Create ~/.config/tokenscape/config.toml with a \[provider] section.[/yellow]')
 
     try:
         from .semantic import _MODEL, analyze, label_cluster
@@ -698,14 +698,14 @@ def full_report(
         from .config import load_provider_config
         labels_config = load_provider_config()
         if labels_config is None:
-            console.print('[yellow]--labels: no config found. Create ~/.config/tokenscape/config.toml with a [provider] section.[/yellow]', file=sys.stderr)
+            Console(stderr=True).print('[yellow]--labels: no config found. Create ~/.config/tokenscape/config.toml with a \[provider] section.[/yellow]')
 
     summarize_config: dict[str, str] | None = None
     if summarize:
         from .config import load_provider_config
         summarize_config = load_provider_config()
         if summarize_config is None:
-            console.print('[yellow]--summarize: no config found. Create ~/.config/tokenscape/config.toml with a [provider] section.[/yellow]', file=sys.stderr)
+            Console(stderr=True).print('[yellow]--summarize: no config found. Create ~/.config/tokenscape/config.toml with a \[provider] section.[/yellow]')
 
     from_dt, to_dt = _resolve_period(period, from_date, to_date)
 
