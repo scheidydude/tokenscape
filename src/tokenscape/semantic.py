@@ -6,8 +6,10 @@ import math
 import urllib.request
 from collections import defaultdict
 from pathlib import Path
+from typing import TYPE_CHECKING
 
-import numpy as np
+if TYPE_CHECKING:
+    import numpy as np
 
 from .types import Turn
 
@@ -22,6 +24,8 @@ def _sha256(text: str) -> str:
 
 
 def _load_cache() -> dict[str, np.ndarray]:
+    import numpy as np
+
     if not _CACHE_PATH.exists():
         return {}
     try:
@@ -36,6 +40,8 @@ def _load_cache() -> dict[str, np.ndarray]:
 
 
 def _save_cache(cache: dict[str, np.ndarray]) -> None:
+    import numpy as np
+
     if not cache:
         return
     _CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -173,6 +179,7 @@ def generate_ai_summary(context: dict, config: dict[str, str], force: bool = Fal
 
 
 def embed_prompts(texts: list[str]) -> np.ndarray:
+    import numpy as np
     from fastembed import TextEmbedding  # optional dep
 
     cache = _load_cache()
@@ -216,6 +223,8 @@ def nearest_to_centroid(
     prompts: list[str],
     n: int = 3,
 ) -> dict[int, list[str]]:
+    import numpy as np
+
     result: dict[int, list[str]] = {}
     for label in sorted(set(labels.tolist())):
         mask = labels == label

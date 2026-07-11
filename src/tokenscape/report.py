@@ -200,7 +200,8 @@ def generate(
                     )
                 parts.append('\n\n'.join(cluster_lines))
     except ModuleNotFoundError:
-        pass
+        import sys
+        print('[tokenscape] Intent Clusters skipped: install "tokenscape[semantic]"', file=sys.stderr)
 
     # ── AI Insights (optional) ────────────────────────────────────────────────
     if summarize_config:

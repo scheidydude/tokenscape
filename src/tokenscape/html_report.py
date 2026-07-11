@@ -226,7 +226,8 @@ def generate(
                     f'<div class="cluster-grid">{"".join(cluster_cards)}</div>'
                 )
     except ModuleNotFoundError:
-        pass
+        import sys
+        print('[tokenscape] Intent Clusters skipped: install "tokenscape[semantic]"', file=sys.stderr)
 
     # ── chart data for model breakdown ────────────────────────────────────────
     chart_data = _chart_data_json(stats) if stats else '[]'
