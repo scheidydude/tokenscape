@@ -1,8 +1,17 @@
 # tokenscape
 
+[![CI](https://github.com/scheidydude/tokenscape/actions/workflows/ci.yml/badge.svg)](https://github.com/scheidydude/tokenscape/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/tokenscape)](https://pypi.org/project/tokenscape/)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)](https://pypi.org/project/tokenscape/)
+[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
+
 CLI and TUI for tracking AI token usage and cost — and for understanding how you actually work. Reads session transcripts directly from disk — no API keys, no proxy, no wrapper. Supports **Claude Code** and **Codex CLI**.
 
+![tokenscape HTML report — model efficiency section](docs/screenshot.png)
+
 ## Install
+
+Requires Python 3.11+. Works on macOS, Linux, and Windows.
 
 ```bash
 pipx install tokenscape
@@ -14,14 +23,7 @@ Zero-install run:
 uvx tokenscape
 ```
 
-Local install from source:
-
-```bash
-pip install -e .
-pip install -e ".[semantic]"   # with semantic clustering
-```
-
-Optional semantic clustering (PyPI):
+Optional semantic clustering:
 
 ```bash
 pip install "tokenscape[semantic]"
@@ -42,7 +44,7 @@ tokenscape --tool codex          # TUI in Codex mode
 
 | Tool | Session path |
 |------|-------------|
-| `claude` (default) | `~/.claude/projects/` + `~/Library/Application Support/Claude/local-agent-mode-sessions/` |
+| `claude` (default) | `~/.claude/projects/` + `~/Library/Application Support/Claude/local-agent-mode-sessions/` (macOS only) |
 | `codex` | `~/.codex/sessions/` |
 
 ## Usage
@@ -382,17 +384,19 @@ Date filtering is per-entry timestamp for both tools, so sessions spanning midni
 ```bash
 git clone https://github.com/scheidydude/tokenscape
 cd tokenscape
-uv venv .venv --python 3.11
-uv pip install -e .
-pytest
-tokenscape status
+uv sync                # installs the package + dev deps (pytest, ruff)
+uv run pytest
+uv run ruff check src tests
+uv run tokenscape status
 ```
 
 Optional extras for semantic clustering:
 
 ```bash
-uv pip install -e ".[semantic]"
-tokenscape semantic
+uv sync --extra semantic
+uv run tokenscape semantic
 ```
 
-Requires Python 3.11+.
+## License
+
+[Apache-2.0](LICENSE)

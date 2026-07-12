@@ -22,6 +22,12 @@ semantic = [
     "numpy>=1.24",
 ]
 
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "ruff>=0.8",
+]
+
 [project.scripts]
 tokenscape = "tokenscape.cli:app"
 
