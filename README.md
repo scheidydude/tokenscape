@@ -23,6 +23,8 @@ Zero-install run:
 uvx tokenscape
 ```
 
+No install at all: open **[scheidydude.github.io/tokenscape](https://scheidydude.github.io/tokenscape/)** and drop in a zip of your sessions (`tokenscape bundle`, or a zip of `~/.claude/projects`). The analysis runs in your browser via Pyodide; the zip is never uploaded. Semantic clustering and AI Insights are CLI-only.
+
 Optional semantic clustering:
 
 ```bash

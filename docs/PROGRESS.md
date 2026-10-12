@@ -35,3 +35,8 @@
   - Screenshots in `screenshots/` (gitignored)
   - Added `.github/workflows/pages.yml` and a `web` job in `ci.yml`; 81/81 tests pass, ruff clean
 - Next: commit + push; user to enable Pages (Source: GitHub Actions); confirm deploy; README link
+- Enabled GitHub Pages (build_type=workflow) via `gh api`; pushed `8d58e3f`
+- Pages run: build + smoke + deploy green; CI green on 3.11/3.12/3.13 + web job
+- Live site e2e (headless Chrome): real bundle 0.6s, charts render, unsafe zip rejected, only host scheidydude.github.io, no requests during analysis, no console errors; `.wasm` served as `application/wasm`
+- Linked site from README; Phase 1 complete
+- Open: PyPI release of Phase 0/1 core changes still deferred by user
