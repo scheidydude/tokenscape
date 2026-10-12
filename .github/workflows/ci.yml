@@ -20,3 +20,21 @@ jobs:
         run: uv run ruff check src tests
       - name: Test
         run: uv run pytest -q
+
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Install Pyodide
+        run: npm ci
+        working-directory: web
+      - name: Build site
+        run: bash web/build.sh
+      - name: Smoke test
+        run: node web/smoke.mjs

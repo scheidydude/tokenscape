@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- connect-src 'self': the page cannot send data anywhere but this site. 'unsafe-inline' and
+       cdnjs are for the generated report (inline scripts + Chart.js), which inherits this policy. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; worker-src 'self'; connect-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; frame-src 'self'; base-uri 'none'; form-action 'none'">
+  <title>tokenscape</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="style.css">
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>tokenscape</h1>
+      <p class="lede">Token usage and workflow report for Claude Code sessions. Your zip is analyzed in this browser tab and never uploaded.</p>
+    </header>
+
+    <section class="card" aria-labelledby="step-file">
+      <h2 id="step-file">1. Choose your sessions zip</h2>
+      <label class="drop" id="drop">
+        <input type="file" id="file" accept=".zip,application/zip">
+        <span class="drop-main" id="drop-text">Drop a .zip here or click to choose</span>
+        <span class="drop-sub">A <code>tokenscape bundle</code> zip, or a zip of <code>~/.claude/projects</code></span>
+      </label>
+      <p class="warn" id="size-warn" hidden>This is a large file. Analysis may take a while and use a lot of memory.</p>
+      <details>
+        <summary>How do I make the zip?</summary>
+        <ul>
+          <li>macOS / Linux: <code>cd ~/.claude &amp;&amp; zip -r ~/claude-sessions.zip projects</code></li>
+          <li>Windows: right-click <code>%USERPROFILE%\.claude\projects</code> → Send to → Compressed (zipped) folder</li>
+          <li>With the CLI installed: <code>tokenscape bundle</code></li>
+        </ul>
+        <p>Transcripts contain your prompts, code and command output. Only share the zip with people you trust; this page keeps it on your machine.</p>
+      </details>
+    </section>
+
+    <section class="card" aria-labelledby="step-period">
+      <h2 id="step-period">2. Pick a period</h2>
+      <div class="row">
+        <select id="period" aria-label="Period">
+          <option value="all" selected>All time</option>
+          <option value="7">Last 7 days</option>
+          <option value="30">Last 30 days</option>
+          <option value="90">Last 90 days</option>
+          <option value="custom">Custom range</option>
+        </select>
+        <span id="custom" class="row" hidden>
+          <label>From <input type="date" id="from"></label>
+          <label>To <input type="date" id="to"></label>
+        </span>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="step-run">
+      <h2 id="step-run">3. Generate</h2>
+      <div class="row">
+        <button id="run" disabled>Generate report</button>
+        <span id="status" role="status">Loading analysis engine…</span>
+      </div>
+    </section>
+
+    <section id="result" hidden aria-label="Report">
+      <div class="row result-bar">
+        <span id="summary"></span>
+        <span class="spacer"></span>
+        <button id="dl-html" class="secondary">Download HTML</button>
+        <button id="dl-md" class="secondary">Download Markdown</button>
+      </div>
+      <iframe id="report" title="tokenscape report" sandbox="allow-scripts"></iframe>
+    </section>
+  </main>
+  <footer>
+    <span>Runs locally with <a href="https://pyodide.org">Pyodide</a>. Source: <a href="https://github.com/scheidydude/tokenscape">github.com/scheidydude/tokenscape</a></span>
+    <span id="version"></span>
+  </footer>
+</body>
+</html>

@@ -18,3 +18,20 @@
   - Added `tests/test_bundle.py` (14 tests incl. parallel bundles with barrier); 76/76 pass, ruff clean
 - Committed and pushed Phase 0; user deferred version bump and PyPI release
 - Next: Phase 1 spike (Pyodide), or release when user says go
+- Phase 1 started
+  - CI green on `2be3200`
+  - Spike (scratchpad, Node 22 + `pyodide@0.28.3`): copied `src/tokenscape/*.py` into Pyodide FS, ran `source_context` → parser → `report.generate` + `html_report.generate` on the real bundle
+  - Output identical to native CLI (md + html, minus "Generated" line) once dates matched
+  - Perf: 13MB zip 1.3s total; 57MB zip 2.6s; 226MB zip (509MB raw) 7.6s, ~450MB RSS; native CLI 3.75s on the 226MB zip
+  - Fixed `\-` invalid escape in `html_report.py` JS regex (warned on Python 3.13/Pyodide); HTML output byte-identical
+  - Added `tests/test_core_imports.py`; 77/77 pass, ruff clean
+- Next: user to confirm site location (`web/` in repo vs separate repo) and hosting (GitHub Pages); then drop-zone page
+  - User chose `web/` in this repo + GitHub Pages
+  - Added `src/tokenscape/webapp.py` (`build_reports` → JSON; inclusive UTC dates; errors returned, not raised) + `tests/test_webapp.py`
+  - Built `web/`: page, worker (Pyodide self-hosted, wheel via `unpackArchive`), `build.sh`, `smoke.mjs`, README
+  - Fixes during build: `uv build` leaves a `.gitignore` in its out dir (rm -rf); `"type": "module"` broke Pyodide's CJS file under Node (removed); Pyodide rejects Node `Buffer` (wrap in `Uint8Array`)
+  - Headless Chrome (system Chrome via playwright-core, scratchpad): real bundle 1,404 turns in 0.8s; charts render; unsafe zip → friendly error; custom range + last-7-days correct; 400px layout ok; no requests during analysis
+  - Fixed: custom date fields visible when hidden (`.row` flex beat `[hidden]`); favicon 404
+  - Screenshots in `screenshots/` (gitignored)
+  - Added `.github/workflows/pages.yml` and a `web` job in `ci.yml`; 81/81 tests pass, ruff clean
+- Next: commit + push; user to enable Pages (Source: GitHub Actions); confirm deploy; README link

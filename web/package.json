@@ -1,0 +1,13 @@
+{
+  "name": "tokenscape-web",
+  "private": true,
+  "description": "Browser build of tokenscape: runs the analysis in Pyodide, nothing is uploaded",
+  "license": "Apache-2.0",
+  "scripts": {
+    "build": "bash build.sh",
+    "smoke": "node smoke.mjs"
+  },
+  "dependencies": {
+    "pyodide": "0.28.3"
+  }
+}

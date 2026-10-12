@@ -9,3 +9,5 @@ build/
 .ruff_cache/
 *.pyi
 .claude/*
+screenshots/
+web/node_modules/

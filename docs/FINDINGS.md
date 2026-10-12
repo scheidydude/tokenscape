@@ -26,3 +26,24 @@
 - Decision: default limits are generous for CLI (100k files, 20GiB); a web service passes tighter `ZipLimits`
 - Known gap (change 5): `--tool codex --source X` silently reads `~/.codex`, ignoring the bundle — same as before Phase 0
 - Full report is deterministic apart from the "Generated" timestamp line → before/after diff with `grep -v Generated`
+
+## Phase 1 spike
+- Core modules (parser, bundle, aggregate, patterns, classifier, report, html_report) import only stdlib → no `rich` needed in browser; `typer`/`textual` never loaded
+- Pyodide 0.28.3 = Python 3.13; `tokenscape` targets >=3.11, no 3.13 incompatibilities found
+- Semantic clusters skip cleanly in Pyodide: `report.py`/`html_report.py` catch `ModuleNotFoundError` (numpy/fastembed not loaded)
+- `source_context` + `zipfile.Path` work unchanged on Pyodide's in-memory FS
+- Pipeline glue for the page (mirrors `cli.full_report._run`): `source_context(zip)` → `stream_turns(files=)` + `stream_sessions(files=)` → `aggregate_turns` → `report.generate(**kw)` / `html_report.generate(**kw)`
+- CLI quirk (pre-existing): `--to YYYY-MM-DD` means midnight at the start of that day, so the day itself is excluded; the page should define its own date handling
+- Pyodide ~2x slower than native; memory ~450MB for a 509MB-raw bundle → fine for desktop browsers, worth a warning above ~250MB zips
+- Packaging: page can install a wheel built from the repo via `micropip.install(url, deps=False)`; no PyPI release needed
+- Python 3.12+ warns on invalid escapes in normal strings; 3.11 (our dev venv) is silent → `python -W error` compile check catches them
+
+## Phase 1 build
+- Meta-tag CSP doesn't apply to Web Workers (they take policy from their own response headers) → self-host Pyodide so the worker only runs our own code
+- `srcdoc` iframes inherit the parent CSP → report needs `'unsafe-inline'` + cdnjs (Chart.js) in `script-src`; `connect-src 'self'` still blocks exfiltration from the report frame
+- Report iframe is `sandbox="allow-scripts"` (no same-origin) → can't touch the page or worker
+- `pyodide.unpackArchive(bytes, 'wheel')` installs the wheel incl. `.dist-info` → `importlib.metadata.version` works; no micropip/network
+- Pyodide in Node: don't set `"type": "module"` next to copied `pyodide.asm.js` (CommonJS); pass `Uint8Array`, not `Buffer`
+- Playwright doesn't report requests from the opaque-origin report iframe; verified Chart.js via rendered charts instead
+- Pre-existing: `models.display_name` has no mapping for `claude-sonnet-5` / `claude-opus-5-5` (shown raw in reports)
+- Site size ~12MB (Pyodide wasm 8.6MB + stdlib 2.4MB); first load cached by browser after

@@ -772,8 +772,8 @@ document.querySelectorAll('table.sortable').forEach(tbl => {{
       rows.sort((a, b) => {{
         const av = a.cells[col]?.textContent.trim() ?? '';
         const bv = b.cells[col]?.textContent.trim() ?? '';
-        const an = parseFloat(av.replace(/[^0-9.\-]/g, ''));
-        const bn = parseFloat(bv.replace(/[^0-9.\-]/g, ''));
+        const an = parseFloat(av.replace(/[^0-9.\\-]/g, ''));
+        const bn = parseFloat(bv.replace(/[^0-9.\\-]/g, ''));
         if (!isNaN(an) && !isNaN(bn)) return (an - bn) * dir;
         return av.localeCompare(bv) * dir;
       }});
