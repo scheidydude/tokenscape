@@ -35,6 +35,7 @@ tokenscape (v0.3.1 on PyPI) is a CLI and TUI that reads AI-assistant session tra
 - Team dashboards that combine several users' data (a possible later phase).
 - Live sync from a user's machine.
 - Replacing the CLI/TUI.
+- Any new dependencies or behavior changes for the CLI install. Web components ship separately (a static site, or an optional `tokenscape[web]` extra / separate package).
 
 ## Threat model
 
