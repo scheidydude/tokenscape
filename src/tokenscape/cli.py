@@ -18,11 +18,15 @@ _ACTIVE_TOOL: str = 'claude'
 _TOOL_LABEL: dict[str, str] = {'claude': 'CLAUDE', 'codex': 'CODEX'}
 
 
+def _bundle_tool() -> str:
+    # Anything but codex reads Claude sessions, as everywhere else in the CLI.
+    return 'codex' if _ACTIVE_TOOL == 'codex' else 'claude'
+
+
 def _stream_turns(from_dt: datetime | None = None, to_dt: datetime | None = None, files=None):
     if _ACTIVE_TOOL == 'codex':
-        # --source bundles are Claude-only for now; codex always reads ~/.codex
         from .codex_parser import stream_turns
-        return stream_turns(from_dt=from_dt, to_dt=to_dt)
+        return stream_turns(from_dt=from_dt, to_dt=to_dt, files=files)
     from .parser import stream_turns
     return stream_turns(from_dt=from_dt, to_dt=to_dt, files=files)
 
@@ -30,7 +34,7 @@ def _stream_turns(from_dt: datetime | None = None, to_dt: datetime | None = None
 def _stream_sessions(from_dt: datetime | None = None, to_dt: datetime | None = None, files=None):
     if _ACTIVE_TOOL == 'codex':
         from .codex_parser import stream_sessions
-        return stream_sessions(from_dt=from_dt, to_dt=to_dt)
+        return stream_sessions(from_dt=from_dt, to_dt=to_dt, files=files)
     from .parser import stream_sessions
     return stream_sessions(from_dt=from_dt, to_dt=to_dt, files=files)
 
@@ -609,7 +613,7 @@ def semantic(
         from .config import load_provider_config
         labels_config = load_provider_config()
         if labels_config is None:
-            console.print('[yellow]--labels: no config found. Create ~/.config/tokenscape/config.toml with a \[provider] section.[/yellow]')
+            console.print('[yellow]--labels: no config found. Create ~/.config/tokenscape/config.toml with a \\[provider] section.[/yellow]')
 
     try:
         from .semantic import _MODEL, analyze, label_cluster
@@ -669,12 +673,13 @@ def bundle(
     console.print('[yellow]Only share with people you trust.[/yellow]\n')
 
     out = Path(output) if output else None
-    path, file_count, size_bytes = create(out)
+    path, file_count, size_bytes = create(out, tool=_bundle_tool())
     size_kb = size_bytes / 1024
     size_str = f'{size_bytes / 1_048_576:.1f} MB' if size_bytes >= 1_048_576 else f'{size_kb:.0f} KB'
     console.print(f'[green]Created {path.name}[/green]  {file_count} session files  {size_str}')
     console.print('\nTeammates can analyze it with:')
-    console.print(f'  tokenscape full-report --source {path.name}')
+    tool_flag = '--tool codex ' if _bundle_tool() == 'codex' else ''
+    console.print(f'  tokenscape {tool_flag}full-report --source {path.name}')
 
 
 @app.command('full-report')
@@ -702,14 +707,14 @@ def full_report(
         from .config import load_provider_config
         labels_config = load_provider_config()
         if labels_config is None:
-            Console(stderr=True).print('[yellow]--labels: no config found. Create ~/.config/tokenscape/config.toml with a \[provider] section.[/yellow]')
+            Console(stderr=True).print('[yellow]--labels: no config found. Create ~/.config/tokenscape/config.toml with a \\[provider] section.[/yellow]')
 
     summarize_config: dict[str, str] | None = None
     if summarize:
         from .config import load_provider_config
         summarize_config = load_provider_config()
         if summarize_config is None:
-            Console(stderr=True).print('[yellow]--summarize: no config found. Create ~/.config/tokenscape/config.toml with a \[provider] section.[/yellow]')
+            Console(stderr=True).print('[yellow]--summarize: no config found. Create ~/.config/tokenscape/config.toml with a \\[provider] section.[/yellow]')
 
     from_dt, to_dt = _resolve_period(period, from_date, to_date)
 
@@ -735,11 +740,22 @@ def full_report(
         return md, html
 
     if source:
+        from pathlib import Path
+
+        err = Console(stderr=True)
+        if not Path(source).exists():
+            err.print(f'[red]--source: no such file or directory: {source}[/red]')
+            raise typer.Exit(1)
+        tool = _bundle_tool()
         try:
-            with source_context(source) as files:
+            with source_context(source, tool=tool) as files:
+                if not files:
+                    hint = ' (made with `tokenscape --tool codex bundle`?)' if tool == 'codex' else ''
+                    err.print(f'[red]--source: no {_TOOL_LABEL[tool]} session files in {source}{hint}[/red]')
+                    raise typer.Exit(1)
                 md, html = _run(files)
         except UnsafeBundleError as exc:
-            Console(stderr=True).print(f'[red]--source: {exc}[/red]')
+            err.print(f'[red]--source: {exc}[/red]')
             raise typer.Exit(1) from exc
     else:
         md, html = _run()

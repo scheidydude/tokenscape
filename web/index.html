@@ -15,23 +15,35 @@
   <main>
     <header>
       <h1>tokenscape</h1>
-      <p class="lede">Token usage and workflow report for Claude Code sessions. Your zip is analyzed in this browser tab and never uploaded.</p>
+      <p class="lede">Token usage and workflow report for Claude Code and Codex CLI sessions. Your zip is analyzed in this browser tab and never uploaded.</p>
     </header>
 
     <section class="card" aria-labelledby="step-file">
       <h2 id="step-file">1. Choose your sessions zip</h2>
+      <div class="row tool-row" role="radiogroup" aria-label="Sessions from">
+        <span>Sessions from</span>
+        <label><input type="radio" name="tool" value="claude" checked> Claude Code</label>
+        <label><input type="radio" name="tool" value="codex"> Codex CLI</label>
+      </div>
       <label class="drop" id="drop">
         <input type="file" id="file" accept=".zip,application/zip">
         <span class="drop-main" id="drop-text">Drop a .zip here or click to choose</span>
-        <span class="drop-sub">A <code>tokenscape bundle</code> zip, or a zip of <code>~/.claude/projects</code></span>
+        <span class="drop-sub" id="drop-sub">A <code>tokenscape bundle</code> zip, or a zip of <code>~/.claude/projects</code></span>
       </label>
       <p class="warn" id="size-warn" hidden>This is a large file. Analysis may take a while and use a lot of memory.</p>
       <details>
         <summary>How do I make the zip?</summary>
+        <p><strong>Claude Code</strong></p>
         <ul>
           <li>macOS / Linux: <code>cd ~/.claude &amp;&amp; zip -r ~/claude-sessions.zip projects</code></li>
           <li>Windows: right-click <code>%USERPROFILE%\.claude\projects</code> → Send to → Compressed (zipped) folder</li>
           <li>With the CLI installed: <code>tokenscape bundle</code></li>
+        </ul>
+        <p><strong>Codex CLI</strong></p>
+        <ul>
+          <li>macOS / Linux: <code>cd ~/.codex &amp;&amp; zip -r ~/codex-sessions.zip sessions</code></li>
+          <li>Windows: right-click <code>%USERPROFILE%\.codex\sessions</code> → Send to → Compressed (zipped) folder</li>
+          <li>With the CLI installed: <code>tokenscape --tool codex bundle</code></li>
         </ul>
         <p>Transcripts contain your prompts, code and command output. Only share the zip with people you trust; this page keeps it on your machine.</p>
       </details>

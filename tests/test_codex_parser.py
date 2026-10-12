@@ -115,3 +115,35 @@ def test_stream_turns_and_sessions(monkeypatch):
     sessions = list(stream_sessions())
     assert len(sessions) == 1
     assert len(sessions[0]) == 2
+
+
+def _fixture_with(tmp_path: Path, *replacements: tuple[str, str]) -> Path:
+    text = FIXTURE.read_text()
+    for old, new in replacements:
+        assert old in text
+        text = text.replace(old, new, 1)
+    path = tmp_path / 'session.jsonl'
+    path.write_text(text)
+    return path
+
+
+def test_model_from_turn_context(tmp_path: Path):
+    path = _fixture_with(tmp_path, ('"turn_id":"turn-01","cwd"', '"turn_id":"turn-01","model":"gpt-6.1-sol","cwd"'))
+    turns = list(_stream_turns_from_path(path, set()))
+    assert [t.model for t in turns] == ['GPT-6.1 Sol', 'GPT-6.1 Sol']
+
+
+def test_model_can_change_between_turns(tmp_path: Path):
+    path = _fixture_with(
+        tmp_path,
+        ('"turn_id":"turn-01","cwd"', '"turn_id":"turn-01","model":"gpt-5.5","cwd"'),
+        ('"turn_id":"turn-02","cwd"', '"turn_id":"turn-02","model":"gpt-6.1-sol","cwd"'),
+    )
+    turns = list(_stream_turns_from_path(path, set()))
+    assert [t.model for t in turns] == ['GPT-5.5', 'GPT-6.1 Sol']
+
+
+def test_fallback_model_drops_trailing_period(tmp_path: Path):
+    path = _fixture_with(tmp_path, ('based on GPT-5.', 'based on GPT-6.'))
+    turns = list(_stream_turns_from_path(path, set()))
+    assert turns[0].model == 'GPT-6'

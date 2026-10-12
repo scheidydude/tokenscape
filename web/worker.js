@@ -17,13 +17,13 @@ ready.then(
 );
 
 self.onmessage = async ({ data }) => {
-  const { zip, fromDate, toDate, periodLabel } = data;
+  const { zip, tool, fromDate, toDate, periodLabel } = data;
   const path = '/bundle.zip';
   try {
     const { py, buildReports } = await ready;
     py.FS.writeFile(path, new Uint8Array(zip));
     try {
-      const result = JSON.parse(buildReports(path, fromDate, toDate, periodLabel));
+      const result = JSON.parse(buildReports.callKwargs(path, fromDate, toDate, periodLabel, { tool }));
       self.postMessage({ type: 'result', ...result });
     } finally {
       py.FS.unlink(path);

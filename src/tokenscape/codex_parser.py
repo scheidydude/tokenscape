@@ -2,15 +2,17 @@ from __future__ import annotations
 
 import json
 import re
-from collections.abc import Iterator
+from collections.abc import Iterable, Iterator
 from datetime import UTC, datetime
 from pathlib import Path
 
 from .config import codex_sessions_dir
 from .models import display_name
+from .parser import SessionFile
 from .types import TokenUsage, Turn
 
-_MODEL_RE = re.compile(r'based on (GPT-[\d.]+\S*)', re.I)
+# Fallback only: sessions without a model in turn_context. Stops before a sentence-ending '.'.
+_MODEL_RE = re.compile(r'based on (GPT-\d+(?:\.\d+)*(?:-[\w-]+)?)', re.I)
 
 
 def _parse_iso(ts: str) -> datetime:
@@ -32,7 +34,7 @@ def _iter_codex_session_files() -> Iterator[Path]:
         yield from base.rglob('*.jsonl')
 
 
-def _stream_jsonl(path: Path) -> Iterator[dict]:
+def _stream_jsonl(path: SessionFile) -> Iterator[dict]:
     with path.open(encoding='utf-8', errors='replace') as fh:
         for line in fh:
             line = line.strip()
@@ -46,9 +48,9 @@ def _stream_jsonl(path: Path) -> Iterator[dict]:
                 continue
 
 
-def list_projects() -> list[tuple[str, datetime]]:
+def list_projects(files: Iterable[Path] | None = None) -> list[tuple[str, datetime]]:
     seen: dict[str, datetime] = {}
-    for path in _iter_codex_session_files():
+    for path in _iter_codex_session_files() if files is None else files:
         try:
             mtime = datetime.fromtimestamp(path.stat().st_mtime, tz=UTC)
         except OSError:
@@ -67,7 +69,7 @@ def list_projects() -> list[tuple[str, datetime]]:
 
 
 def _stream_turns_from_path(
-    path: Path,
+    path: SessionFile,
     seen_ids: set[str],
     from_dt: datetime | None = None,
     to_dt: datetime | None = None,
@@ -93,6 +95,7 @@ def _stream_turns_from_path(
     current_bash: list[str] = []
     current_user_text: str = ''
     current_cwd: str = session_cwd
+    current_model: str = model_name
 
     def _flush() -> Turn | None:
         if not current_turn_id or current_turn_id in seen_ids:
@@ -117,7 +120,7 @@ def _stream_turns_from_path(
         return Turn(
             message_id=current_turn_id,
             timestamp=ts,
-            model=model_name,
+            model=current_model,
             usage=usage,
             tools_used=list(current_tools),
             bash_inputs=list(current_bash),
@@ -138,6 +141,9 @@ def _stream_turns_from_path(
             cwd = str(payload.get('cwd', '') or '')
             if cwd:
                 current_cwd = cwd
+            model = str(payload.get('model', '') or '')
+            if model:
+                current_model = display_name(model)
             continue
 
         if etype == 'event_msg':
@@ -190,17 +196,19 @@ def _stream_turns_from_path(
 def stream_turns(
     from_dt: datetime | None = None,
     to_dt: datetime | None = None,
+    files: Iterable[SessionFile] | None = None,
 ) -> Iterator[Turn]:
     seen_ids: set[str] = set()
-    for path in _iter_codex_session_files():
+    for path in _iter_codex_session_files() if files is None else files:
         yield from _stream_turns_from_path(path, seen_ids, from_dt, to_dt)
 
 
 def stream_sessions(
     from_dt: datetime | None = None,
     to_dt: datetime | None = None,
+    files: Iterable[SessionFile] | None = None,
 ) -> Iterator[list[Turn]]:
-    for path in _iter_codex_session_files():
+    for path in _iter_codex_session_files() if files is None else files:
         seen_ids: set[str] = set()
         turns = list(_stream_turns_from_path(path, seen_ids, from_dt, to_dt))
         if turns:

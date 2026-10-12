@@ -7,27 +7,40 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path, PurePosixPath
 
-from .config import claude_desktop_sessions_dir, claude_projects_dir
+from .config import claude_desktop_sessions_dir, claude_projects_dir, codex_sessions_dir
 from .parser import SessionFile
 
+# Folder names inside a bundle zip, per tool. Any other layout is read as "all .jsonl files".
+BUNDLE_DIRS: dict[str, tuple[str, ...]] = {
+    'claude': ('projects', 'desktop-sessions'),
+    'codex': ('codex-sessions',),
+}
 
-def create(output_path: Path | None = None) -> tuple[Path, int, int]:
+
+def _local_session_dirs(tool: str) -> list[tuple[str, Path]]:
+    if tool == 'codex':
+        codex = codex_sessions_dir()
+        return [('codex-sessions', codex)] if codex else []
+    dirs = [('projects', claude_projects_dir())]
+    desktop = claude_desktop_sessions_dir()
+    if desktop:
+        dirs.append(('desktop-sessions', desktop))
+    return dirs
+
+
+def create(output_path: Path | None = None, tool: str = 'claude') -> tuple[Path, int, int]:
     if output_path is None:
         date = datetime.now().strftime('%Y%m%d')
-        output_path = Path.cwd() / f'tokenscape-bundle-{date}.zip'
-
-    projects = claude_projects_dir()
-    desktop = claude_desktop_sessions_dir()
+        suffix = '' if tool == 'claude' else f'-{tool}'
+        output_path = Path.cwd() / f'tokenscape-bundle{suffix}-{date}.zip'
 
     file_count = 0
     with zipfile.ZipFile(output_path, 'w', zipfile.ZIP_DEFLATED) as zf:
-        if projects.exists():
-            for jsonl in projects.rglob('*.jsonl'):
-                zf.write(jsonl, Path('projects') / jsonl.relative_to(projects))
-                file_count += 1
-        if desktop and desktop.exists():
-            for jsonl in desktop.rglob('*.jsonl'):
-                zf.write(jsonl, Path('desktop-sessions') / jsonl.relative_to(desktop))
+        for arc_dir, local in _local_session_dirs(tool):
+            if not local.exists():
+                continue
+            for jsonl in local.rglob('*.jsonl'):
+                zf.write(jsonl, Path(arc_dir) / jsonl.relative_to(local))
                 file_count += 1
 
     size_bytes = output_path.stat().st_size
@@ -48,8 +61,6 @@ class ZipLimits:
 
 
 DEFAULT_LIMITS = ZipLimits()
-
-_SUBDIRS = ('projects', 'desktop-sessions')
 
 
 def _is_unsafe_name(name: str) -> bool:
@@ -83,20 +94,27 @@ def _validated_entries(zf: zipfile.ZipFile, limits: ZipLimits) -> list[zipfile.Z
     return jsonl
 
 
-def _order_like_bundle(names: list[str]) -> list[str]:
-    '''Bundle subdirs first (projects, then desktop-sessions); everything if neither exists.'''
-    picked = [n for sub in _SUBDIRS for n in names if n.startswith(f'{sub}/')]
-    return picked or names
+def _known_dirs() -> set[str]:
+    return {d for dirs in BUNDLE_DIRS.values() for d in dirs}
+
+
+def _pick_for_tool(names: list[str], tool: str) -> list[str]:
+    '''The tool's bundle folders, in order; every file if the zip has no known bundle folders.'''
+    if not any(n.split('/', 1)[0] in _known_dirs() for n in names):
+        return names
+    return [n for sub in BUNDLE_DIRS[tool] for n in names if n.startswith(f'{sub}/')]
 
 
 @contextmanager
 def source_context(
-    source: str, limits: ZipLimits = DEFAULT_LIMITS
+    source: str, limits: ZipLimits = DEFAULT_LIMITS, tool: str = 'claude'
 ) -> Generator[list[SessionFile], None, None]:
-    '''Yield the session files in a bundle zip or directory, for passing as `files=` to the parser.
+    '''Yield `tool`'s session files in a bundle zip or directory, for `files=` on its parser.
 
     Zip entries are read in place (never extracted) and checked against `limits` first.
     '''
+    if tool not in BUNDLE_DIRS:
+        raise ValueError(f'unknown tool: {tool!r}')
     if source.lower().endswith('.zip'):
         try:
             zf = zipfile.ZipFile(source)
@@ -104,10 +122,12 @@ def source_context(
             raise UnsafeBundleError(f'not a valid zip: {source}') from exc
         with zf:
             names = [i.filename for i in _validated_entries(zf, limits)]
-            yield [zipfile.Path(zf, n) for n in _order_like_bundle(names)]
+            yield [zipfile.Path(zf, n) for n in _pick_for_tool(names, tool)]
         return
 
     source_dir = Path(source)
-    subdirs = [source_dir / sub for sub in _SUBDIRS if (source_dir / sub).exists()]
-    roots = subdirs or [source_dir]
+    if any((source_dir / d).is_dir() for d in _known_dirs()):
+        roots = [source_dir / d for d in BUNDLE_DIRS[tool] if (source_dir / d).is_dir()]
+    else:
+        roots = [source_dir]
     yield [f for root in roots for f in root.rglob('*.jsonl')]

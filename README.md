@@ -303,6 +303,8 @@ tokenscape bundle                    # → tokenscape-bundle-20260531.zip
 tokenscape full-report --source tokenscape-bundle-20260531.zip --output report.md
 ```
 
+For Codex CLI sessions, add `--tool codex` on both sides: `tokenscape --tool codex bundle` writes `tokenscape-bundle-codex-YYYYMMDD.zip`, and `tokenscape --tool codex full-report --source <zip>` reads it. A plain `tokenscape bundle` contains Claude sessions only.
+
 The bundle contains only `.jsonl` session files — no credentials, settings, or other config. It does contain your full prompt history; only share with people you trust. For individual commands, point at the extracted directory via `CLAUDE_CONFIG_DIR=/path/to/extracted tokenscape patterns`.
 
 ---

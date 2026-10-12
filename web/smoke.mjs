@@ -1,5 +1,5 @@
 // Smoke test for the browser build: loads the built Pyodide + wheel from dist/ the same way
-// worker.js does and runs build_reports on a bundle. Usage: node smoke.mjs [bundle.zip]
+// worker.js does and runs build_reports. Usage: node smoke.mjs [bundle.zip [claude|codex]]
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -29,24 +29,30 @@ function zipOf(name, text) {
   return Buffer.concat([local, nameBuf, data, central, nameBuf, end]);
 }
 
-const bundle = process.argv[2]
-  ? fs.readFileSync(process.argv[2])
-  : zipOf('projects/p/a.jsonl', fs.readFileSync(path.join(here, '../tests/fixtures/sample-session.jsonl'), 'utf8'));
+const fixture = (name) => fs.readFileSync(path.join(here, '../tests/fixtures', name), 'utf8');
+const cases = process.argv[2]
+  ? [{ tool: process.argv[3] ?? 'claude', zip: fs.readFileSync(process.argv[2]) }]
+  : [
+    { tool: 'claude', zip: zipOf('projects/p/a.jsonl', fixture('sample-session.jsonl')) },
+    { tool: 'codex', zip: zipOf('codex-sessions/r.jsonl', fixture('sample-codex-session.jsonl')) },
+  ];
 
 const t0 = performance.now();
 const py = await loadPyodide({ indexURL: path.join(dist, 'pyodide') + path.sep });
 py.unpackArchive(new Uint8Array(fs.readFileSync(path.join(dist, 'tokenscape.whl'))), 'wheel');
-py.FS.writeFile('/bundle.zip', new Uint8Array(bundle));
 const buildReports = py.pyimport('tokenscape.webapp').build_reports;
-const result = JSON.parse(buildReports('/bundle.zip', null, null, 'all time'));
-const seconds = ((performance.now() - t0) / 1000).toFixed(2);
 
-if (result.error) {
-  console.error(`FAIL: ${result.error}`);
-  process.exit(1);
+for (const { tool, zip } of cases) {
+  py.FS.writeFile('/bundle.zip', new Uint8Array(zip));
+  const result = JSON.parse(buildReports.callKwargs('/bundle.zip', null, null, 'all time', { tool }));
+  const seconds = ((performance.now() - t0) / 1000).toFixed(2);
+  if (result.error) {
+    console.error(`FAIL ${tool}: ${result.error}`);
+    process.exit(1);
+  }
+  if (!result.html.startsWith('<!DOCTYPE html>') || !result.markdown.includes(`— ${tool.toUpperCase()}`)) {
+    console.error(`FAIL ${tool}: unexpected report output`);
+    process.exit(1);
+  }
+  console.log(`OK ${tool} tokenscape ${result.version}: ${result.turns} turns, ${result.sessions} sessions, ${result.from} to ${result.to} at ${seconds}s`);
 }
-if (!result.html.startsWith('<!DOCTYPE html>') || !result.markdown.startsWith('# tokenscape report')) {
-  console.error('FAIL: unexpected report output');
-  process.exit(1);
-}
-console.log(`OK tokenscape ${result.version}: ${result.turns} turns, ${result.sessions} sessions, ${result.from} to ${result.to} in ${seconds}s`);

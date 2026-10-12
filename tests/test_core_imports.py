@@ -4,7 +4,7 @@ import subprocess
 import sys
 
 # The browser build (Pyodide) loads only these modules; they must not pull in CLI/TUI deps.
-CORE = ['parser', 'bundle', 'aggregate', 'patterns', 'classifier', 'report', 'html_report', 'webapp']
+CORE = ['parser', 'codex_parser', 'bundle', 'aggregate', 'patterns', 'classifier', 'report', 'html_report', 'webapp']
 CLI_ONLY = ('rich', 'typer', 'textual', 'click', 'numpy')
 
 

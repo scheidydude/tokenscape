@@ -1,6 +1,9 @@
 import re
 
 _PATTERNS: list[tuple[re.Pattern[str], str]] = [
+    (re.compile(r'gpt-6\.1-sol'), 'GPT-6.1 Sol'),
+    (re.compile(r'gpt-6\.1'), 'GPT-6.1'),
+    (re.compile(r'gpt-6'), 'GPT-6'),
     (re.compile(r'gpt-5\.5'), 'GPT-5.5'),
     (re.compile(r'gpt-5\.4-mini'), 'GPT-5.4 Mini'),
     (re.compile(r'gpt-5\.4'), 'GPT-5.4'),

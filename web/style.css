@@ -65,6 +65,10 @@ h2 { margin: 0 0 12px; font-size: 16px; }
 }
 .spacer { flex: 1; }
 
+.tool-row { margin-bottom: 12px; }
+.tool-row > span { color: var(--muted); }
+.tool-row label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+
 .drop {
   display: flex;
   flex-direction: column;

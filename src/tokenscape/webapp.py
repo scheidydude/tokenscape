@@ -11,8 +11,9 @@ from importlib.metadata import PackageNotFoundError, version
 from .aggregate import aggregate_turns
 from .bundle import UnsafeBundleError, source_context
 from .html_report import generate as generate_html
-from .parser import stream_sessions, stream_turns
 from .report import generate as generate_md
+
+_TOOL_NAMES = {'claude': 'Claude Code', 'codex': 'Codex CLI'}
 
 
 def _version() -> str:
@@ -32,19 +33,28 @@ def build_reports(
     to_date: str | None = None,
     period_label: str = 'all time',
     top: int = 8,
+    tool: str = 'claude',
 ) -> str:
     '''Analyze the bundle at `zip_path` and return a JSON string for the page.
 
     `from_date` / `to_date` are inclusive YYYY-MM-DD days in UTC; either may be omitted.
+    `tool` is 'claude' or 'codex' and picks both the bundle folders and the parser.
     The result has either an `error` key or `markdown`, `html` and summary counts.
     '''
+    if tool == 'codex':
+        from .codex_parser import stream_sessions, stream_turns
+    elif tool == 'claude':
+        from .parser import stream_sessions, stream_turns
+    else:
+        return json.dumps({'error': f'Unknown tool: {tool}'})
+
     from_dt = _day_start(from_date) if from_date else None
     to_dt = _day_start(to_date) + timedelta(days=1) - timedelta(microseconds=1) if to_date else None
 
     try:
-        with source_context(zip_path) as files:
+        with source_context(zip_path, tool=tool) as files:
             if not files:
-                return json.dumps({'error': 'No .jsonl session files found in this zip.'})
+                return json.dumps({'error': f'No {_TOOL_NAMES[tool]} session files found in this zip.'})
             turns = list(stream_turns(from_dt=from_dt, to_dt=to_dt, files=files))
             sessions = list(stream_sessions(from_dt=from_dt, to_dt=to_dt, files=files))
     except UnsafeBundleError as exc:
@@ -67,7 +77,7 @@ def build_reports(
         labels_config=None,
         summarize_config=None,
         force_summary=False,
-        tool_label='CLAUDE',
+        tool_label=tool.upper(),
     )
     return json.dumps({
         'markdown': generate_md(**kwargs),

@@ -41,3 +41,12 @@
 - Linked site from README; Phase 1 complete
 - Open: PyPI release of Phase 0/1 core changes still deferred by user
 - Fixed model display names: `claude-sonnet-5` → Sonnet 5, `claude-opus-5-5` → Opus 5.5 (+ Opus 5 / Sonnet 5.5 so they don't mislabel); `tests/test_models.py`; 88/88 pass
+- Change 5 (Codex in bundles) done, uncommitted
+  - `bundle.create(tool=)`: plain `bundle` unchanged (Claude only); `--tool codex bundle` → `codex-sessions/` in `tokenscape-bundle-codex-YYYYMMDD.zip`
+  - `source_context(tool=)` picks the tool's bundle folders; zips with no known folders read every `.jsonl`; `codex_parser` streams take `files=`
+  - CLI: `--tool codex --source` now reads the bundle (was silently reading `~/.codex`); missing `--source` path and "no sessions for this tool" exit 1 with a message (missing path used to traceback)
+  - Fixed 3 more invalid `\[` escapes in `cli.py` rich markup (same output)
+  - `webapp.build_reports(tool=)`; page has Claude Code / Codex CLI radio, per-tool hints and zip instructions; smoke test runs both tools
+  - Real data: Claude `--source` md+html identical to previous commit; Codex bundle report identical to reading `~/.codex` directly (62 turns); browser: Codex 62 turns, wrong-tool message, switch back to Claude ok
+  - 102 tests pass (with DeprecationWarning as error), ruff clean; README documents Codex bundles
+- Fixed Codex model names: per-turn `turn_context.model` (real data: GPT-6.1 Sol 50 turns, GPT-5.5 12 — was `gpt-6.` / GPT-5); added GPT-6 / 6.1 / 6.1 Sol display names; 3 new tests, 105 pass

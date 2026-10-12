@@ -39,4 +39,22 @@ def test_unsafe_zip_is_an_error_not_an_exception(tmp_path: Path):
 
 def test_zip_without_sessions(tmp_path: Path):
     out = json.loads(build_reports(_bundle(tmp_path, {'readme.txt': 'hi'})))
-    assert 'No .jsonl' in out['error']
+    assert out['error'] == 'No Claude Code session files found in this zip.'
+
+
+def test_codex_report(tmp_path: Path):
+    codex = (Path(__file__).parent / 'fixtures' / 'sample-codex-session.jsonl').read_text()
+    zip_path = _bundle(tmp_path, {'codex-sessions/r.jsonl': codex, 'projects/p/a.jsonl': FIXTURE.read_text()})
+    out = json.loads(build_reports(zip_path, tool='codex'))
+    assert out['turns'] == 2
+    assert '— CODEX' in out['markdown']
+
+
+def test_codex_report_on_claude_only_zip(tmp_path: Path):
+    out = json.loads(build_reports(_bundle(tmp_path, {'projects/p/a.jsonl': FIXTURE.read_text()}), tool='codex'))
+    assert out['error'] == 'No Codex CLI session files found in this zip.'
+
+
+def test_unknown_tool(tmp_path: Path):
+    out = json.loads(build_reports(_bundle(tmp_path, {'projects/p/a.jsonl': FIXTURE.read_text()}), tool='gemini'))
+    assert 'Unknown tool' in out['error']

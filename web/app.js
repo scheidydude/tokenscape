@@ -2,7 +2,7 @@ const LARGE_FILE_BYTES = 250 * 1024 * 1024;
 
 const $ = (id) => document.getElementById(id);
 const els = {
-  drop: $('drop'), file: $('file'), dropText: $('drop-text'), sizeWarn: $('size-warn'),
+  drop: $('drop'), file: $('file'), dropText: $('drop-text'), dropSub: $('drop-sub'), sizeWarn: $('size-warn'),
   period: $('period'), custom: $('custom'), from: $('from'), to: $('to'),
   run: $('run'), status: $('status'),
   result: $('result'), summary: $('summary'), report: $('report'),
@@ -13,6 +13,13 @@ let engineReady = false;
 let busy = false;
 let selected = null;
 let lastResult = null;
+
+const DROP_HINTS = {
+  claude: 'A <code>tokenscape bundle</code> zip, or a zip of <code>~/.claude/projects</code>',
+  codex: 'A <code>tokenscape --tool codex bundle</code> zip, or a zip of <code>~/.codex/sessions</code>',
+};
+
+const selectedTool = () => document.querySelector('input[name="tool"]:checked').value;
 
 const worker = new Worker(new URL('./worker.js', import.meta.url), { type: 'module' });
 
@@ -115,6 +122,10 @@ els.drop.addEventListener('drop', (e) => {
   chooseFile(e.dataTransfer.files[0]);
 });
 
+for (const radio of document.querySelectorAll('input[name="tool"]')) {
+  radio.addEventListener('change', () => { els.dropSub.innerHTML = DROP_HINTS[selectedTool()]; });
+}
+
 els.period.addEventListener('change', () => {
   els.custom.hidden = els.period.value !== 'custom';
 });
@@ -125,7 +136,7 @@ els.run.addEventListener('click', async () => {
   updateRunButton();
   setStatus('Analyzing…');
   const zip = await selected.arrayBuffer();
-  worker.postMessage({ zip, ...periodRange() }, [zip]);
+  worker.postMessage({ zip, tool: selectedTool(), ...periodRange() }, [zip]);
 });
 
 els.dlHtml.addEventListener('click', () => {

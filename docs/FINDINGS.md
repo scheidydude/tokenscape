@@ -47,3 +47,8 @@
 - Playwright doesn't report requests from the opaque-origin report iframe; verified Chart.js via rendered charts instead
 - Fixed 2026-10-12: `models.display_name` now maps `claude-sonnet-5` / `claude-opus-5-5` (were shown raw)
 - Site size ~12MB (Pyodide wasm 8.6MB + stdlib 2.4MB); first load cached by browser after
+
+## Change 5 (Codex bundles)
+- Decision: bundle contents follow `--tool` rather than always including both tools — a plain `bundle` never starts including Codex transcripts the user didn't intend to share
+- Folder per tool in the zip (`BUNDLE_DIRS` in `bundle.py`); any known folder present → only the chosen tool's folders are read, so a Claude bundle gives Codex zero files (clear error) instead of misparsing
+- Fixed 2026-10-12: Codex model came from the instructions text ("based on GPT-6." → `gpt-6.`; GPT-5.5 sessions showed as GPT-5). Every real session has `turn_context.payload.model` → now used per turn; text regex is only a fallback and stops before a trailing '.'

@@ -35,7 +35,7 @@ Let users get the tokenscape HTML report from a sessions zip without installing 
   - [ ] Change 4: per-request LLM provider config (`cli.py:706-711`, `report.py:203`)
   - [ ] Secret scrubbing before any LLM call
   - [ ] Full security checklist + security review before launch
-- [ ] Parallel / anytime: Change 5 — Codex support in `bundle` and `--source`
+- [x] Parallel / anytime: Change 5 — Codex support in `bundle` and `--source` (bundle follows `--tool`; `codex-sessions/` folder; web page has a Claude/Codex choice)
 
 ## Status
 Phase 0 done except release (deferred by user). Phase 1 done: live at https://scheidydude.github.io/tokenscape/. Phase 2 (metrics-only) only if team views are wanted.
