@@ -18,20 +18,21 @@ _ACTIVE_TOOL: str = 'claude'
 _TOOL_LABEL: dict[str, str] = {'claude': 'CLAUDE', 'codex': 'CODEX'}
 
 
-def _stream_turns(from_dt: datetime | None = None, to_dt: datetime | None = None):
+def _stream_turns(from_dt: datetime | None = None, to_dt: datetime | None = None, files=None):
     if _ACTIVE_TOOL == 'codex':
+        # --source bundles are Claude-only for now; codex always reads ~/.codex
         from .codex_parser import stream_turns
         return stream_turns(from_dt=from_dt, to_dt=to_dt)
     from .parser import stream_turns
-    return stream_turns(from_dt=from_dt, to_dt=to_dt)
+    return stream_turns(from_dt=from_dt, to_dt=to_dt, files=files)
 
 
-def _stream_sessions(from_dt: datetime | None = None, to_dt: datetime | None = None):
+def _stream_sessions(from_dt: datetime | None = None, to_dt: datetime | None = None, files=None):
     if _ACTIVE_TOOL == 'codex':
         from .codex_parser import stream_sessions
         return stream_sessions(from_dt=from_dt, to_dt=to_dt)
     from .parser import stream_sessions
-    return stream_sessions(from_dt=from_dt, to_dt=to_dt)
+    return stream_sessions(from_dt=from_dt, to_dt=to_dt, files=files)
 
 
 def _list_projects():
@@ -692,7 +693,7 @@ def full_report(
     '''Generate a full markdown report covering all analysis commands.'''
 
     from .aggregate import aggregate_turns
-    from .bundle import source_context
+    from .bundle import UnsafeBundleError, source_context
     from .html_report import generate as generate_html
     from .report import generate
 
@@ -712,9 +713,9 @@ def full_report(
 
     from_dt, to_dt = _resolve_period(period, from_date, to_date)
 
-    def _run() -> tuple[str, str | None]:
-        turns = list(_stream_turns(from_dt=from_dt, to_dt=to_dt))
-        sessions = list(_stream_sessions(from_dt=from_dt, to_dt=to_dt))
+    def _run(files=None) -> tuple[str, str | None]:
+        turns = list(_stream_turns(from_dt=from_dt, to_dt=to_dt, files=files))
+        sessions = list(_stream_sessions(from_dt=from_dt, to_dt=to_dt, files=files))
         result = aggregate_turns(iter(turns))
         kwargs = dict(
             turns=turns,
@@ -734,8 +735,12 @@ def full_report(
         return md, html
 
     if source:
-        with source_context(source):
-            md, html = _run()
+        try:
+            with source_context(source) as files:
+                md, html = _run(files)
+        except UnsafeBundleError as exc:
+            Console(stderr=True).print(f'[red]--source: {exc}[/red]')
+            raise typer.Exit(1) from exc
     else:
         md, html = _run()
 

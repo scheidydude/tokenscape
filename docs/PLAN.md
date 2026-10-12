@@ -7,11 +7,11 @@ Let users get the tokenscape HTML report from a sessions zip without installing 
 
 ## Phases
 - [ ] Phase 0: CLI prerequisites (ships as a normal PyPI release)
-  - [ ] Change 1: pass session file lists explicitly into `stream_turns` / `stream_sessions`; remove the `_iter_session_files` monkeypatch in `bundle.py:source_context`
-  - [ ] Change 2: harden zip reading — caps on uncompressed size, file count and compression ratio; `.jsonl` only; reject absolute/`..` paths; read entries from the zip instead of `extractall`
-  - [ ] Tests: two bundles parsed in parallel give correct, separate results
-  - [ ] Tests: malicious zips (zip bomb, `../` path, non-jsonl entries) are rejected
-  - [ ] Confirm CLI output unchanged on an existing bundle (before/after diff of `full-report`)
+  - [x] Change 1: pass session file lists explicitly into `stream_turns` / `stream_sessions`; remove the `_iter_session_files` monkeypatch in `bundle.py:source_context`
+  - [x] Change 2: harden zip reading — caps on uncompressed size, file count and compression ratio; non-`.jsonl` entries ignored; reject absolute/`..`/drive paths; read entries from the zip instead of `extractall`
+  - [x] Tests: two bundles parsed in parallel give correct, separate results
+  - [x] Tests: malicious zips (zip bomb, `../` path, size/count limits, invalid zip) are rejected; non-jsonl entries ignored
+  - [x] Confirm CLI output unchanged on an existing bundle (before/after diff of `full-report`)
   - [ ] ruff + pytest green; bump version, tag, release
 - [ ] Phase 1: browser-only app (Option A)
   - [ ] Spike: load the core in Pyodide (stdlib + `rich`, no `typer`/`textual`); list import blockers
@@ -35,4 +35,4 @@ Let users get the tokenscape HTML report from a sessions zip without installing 
 - [ ] Parallel / anytime: Change 5 — Codex support in `bundle` and `--source`
 
 ## Status
-Not started. Next: Phase 0, change 1.
+Phase 0 code committed and pushed. Release (version bump + tag → PyPI) deferred by user; next is Phase 1 spike when ready.

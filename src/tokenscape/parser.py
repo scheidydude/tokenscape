@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import json
 import re
-from collections.abc import Iterator
+import zipfile
+from collections.abc import Iterable, Iterator
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -11,6 +12,9 @@ from .models import display_name
 from .types import TokenUsage, Turn
 
 _MCP_RE = re.compile(r'^mcp__([^_]+)__')
+
+# A session transcript on disk or inside an open bundle zip; both support .open() in text mode.
+SessionFile = Path | zipfile.Path
 
 
 def _parse_iso(ts: str) -> datetime:
@@ -85,7 +89,7 @@ def _extract_user_text(content: list[object]) -> str:
     return ' '.join(parts)
 
 
-def _stream_jsonl(path: Path) -> Iterator[dict[str, object]]:
+def _stream_jsonl(path: SessionFile) -> Iterator[dict[str, object]]:
     with path.open(encoding='utf-8', errors='replace') as fh:
         for line in fh:
             line = line.strip()
@@ -99,10 +103,10 @@ def _stream_jsonl(path: Path) -> Iterator[dict[str, object]]:
                 continue
 
 
-def list_projects() -> list[tuple[str, datetime]]:
+def list_projects(files: Iterable[Path] | None = None) -> list[tuple[str, datetime]]:
     '''Return (project_name, last_modified) sorted most-recent first.'''
     seen: dict[str, datetime] = {}
-    for path in _iter_session_files():
+    for path in _iter_session_files() if files is None else files:
         try:
             mtime = datetime.fromtimestamp(path.stat().st_mtime, tz=UTC)
         except OSError:
@@ -138,7 +142,7 @@ def _iter_session_files() -> Iterator[Path]:
 
 
 def _stream_turns_from_path(
-    path: Path,
+    path: SessionFile,
     seen_ids: set[str],
     from_dt: datetime | None = None,
     to_dt: datetime | None = None,
@@ -227,18 +231,21 @@ def _stream_turns_from_path(
 def stream_turns(
     from_dt: datetime | None = None,
     to_dt: datetime | None = None,
+    files: Iterable[SessionFile] | None = None,
 ) -> Iterator[Turn]:
+    '''Yield deduplicated turns from `files`, or from the local Claude session dirs when None.'''
     seen_ids: set[str] = set()
-    for path in _iter_session_files():
+    for path in _iter_session_files() if files is None else files:
         yield from _stream_turns_from_path(path, seen_ids, from_dt, to_dt)
 
 
 def stream_sessions(
     from_dt: datetime | None = None,
     to_dt: datetime | None = None,
+    files: Iterable[SessionFile] | None = None,
 ) -> Iterator[list[Turn]]:
     '''Yield turns grouped by session file, in order, with per-file deduplication.'''
-    for path in _iter_session_files():
+    for path in _iter_session_files() if files is None else files:
         seen_ids: set[str] = set()
         turns = list(_stream_turns_from_path(path, seen_ids, from_dt, to_dt))
         if turns:

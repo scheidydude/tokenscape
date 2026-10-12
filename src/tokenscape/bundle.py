@@ -1,14 +1,14 @@
 from __future__ import annotations
 
-import shutil
-import tempfile
 import zipfile
 from collections.abc import Generator
 from contextlib import contextmanager
+from dataclasses import dataclass
 from datetime import datetime
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from .config import claude_desktop_sessions_dir, claude_projects_dir
+from .parser import SessionFile
 
 
 def create(output_path: Path | None = None) -> tuple[Path, int, int]:
@@ -34,35 +34,80 @@ def create(output_path: Path | None = None) -> tuple[Path, int, int]:
     return output_path, file_count, size_bytes
 
 
+class UnsafeBundleError(ValueError):
+    '''A bundle zip that is malformed, too large, or contains unsafe paths.'''
+
+
+@dataclass(frozen=True)
+class ZipLimits:
+    max_files: int = 100_000
+    max_total_bytes: int = 20 * 1024**3
+    # Applied per entry, only above min_ratio_bytes; real .jsonl transcripts compress ~5-15x.
+    max_ratio: float = 200.0
+    min_ratio_bytes: int = 1024**2
+
+
+DEFAULT_LIMITS = ZipLimits()
+
+_SUBDIRS = ('projects', 'desktop-sessions')
+
+
+def _is_unsafe_name(name: str) -> bool:
+    if name.startswith(('/', '\\')):
+        return True
+    parts = PurePosixPath(name).parts
+    return '..' in parts or (bool(parts) and ':' in parts[0])
+
+
+def _validated_entries(zf: zipfile.ZipFile, limits: ZipLimits) -> list[zipfile.ZipInfo]:
+    '''Check every entry against `limits` and return the .jsonl file entries in archive order.'''
+    infos = zf.infolist()
+    if len(infos) > limits.max_files:
+        raise UnsafeBundleError(f'bundle has {len(infos)} entries (limit {limits.max_files})')
+    total = 0
+    jsonl: list[zipfile.ZipInfo] = []
+    for info in infos:
+        if _is_unsafe_name(info.filename):
+            raise UnsafeBundleError(f'unsafe path in bundle: {info.filename!r}')
+        if info.is_dir() or not info.filename.lower().endswith('.jsonl'):
+            continue
+        total += info.file_size
+        if total > limits.max_total_bytes:
+            raise UnsafeBundleError(f'bundle expands past {limits.max_total_bytes} bytes')
+        if (
+            info.file_size > limits.min_ratio_bytes
+            and info.file_size > limits.max_ratio * max(info.compress_size, 1)
+        ):
+            raise UnsafeBundleError(f'suspicious compression ratio for {info.filename!r}')
+        jsonl.append(info)
+    return jsonl
+
+
+def _order_like_bundle(names: list[str]) -> list[str]:
+    '''Bundle subdirs first (projects, then desktop-sessions); everything if neither exists.'''
+    picked = [n for sub in _SUBDIRS for n in names if n.startswith(f'{sub}/')]
+    return picked or names
+
+
 @contextmanager
-def source_context(source: str) -> Generator[Path, None, None]:
-    import tokenscape.parser as parser_mod
+def source_context(
+    source: str, limits: ZipLimits = DEFAULT_LIMITS
+) -> Generator[list[SessionFile], None, None]:
+    '''Yield the session files in a bundle zip or directory, for passing as `files=` to the parser.
 
-    tmp_dir: Path | None = None
+    Zip entries are read in place (never extracted) and checked against `limits` first.
+    '''
     if source.lower().endswith('.zip'):
-        tmp_dir = Path(tempfile.mkdtemp(prefix='tokenscape-'))
-        with zipfile.ZipFile(source) as zf:
-            zf.extractall(tmp_dir)
-        source_dir = tmp_dir
-    else:
-        source_dir = Path(source)
+        try:
+            zf = zipfile.ZipFile(source)
+        except zipfile.BadZipFile as exc:
+            raise UnsafeBundleError(f'not a valid zip: {source}') from exc
+        with zf:
+            names = [i.filename for i in _validated_entries(zf, limits)]
+            yield [zipfile.Path(zf, n) for n in _order_like_bundle(names)]
+        return
 
-    orig_iter = parser_mod._iter_session_files
-
-    def _from_source():
-        found_any_subdir = False
-        for subdir in ('projects', 'desktop-sessions'):
-            d = source_dir / subdir
-            if d.exists():
-                found_any_subdir = True
-                yield from d.rglob('*.jsonl')
-        if not found_any_subdir:
-            yield from source_dir.rglob('*.jsonl')
-
-    parser_mod._iter_session_files = _from_source
-    try:
-        yield source_dir
-    finally:
-        parser_mod._iter_session_files = orig_iter
-        if tmp_dir is not None:
-            shutil.rmtree(tmp_dir, ignore_errors=True)
+    source_dir = Path(source)
+    subdirs = [source_dir / sub for sub in _SUBDIRS if (source_dir / sub).exists()]
+    roots = subdirs or [source_dir]
+    yield [f for root in roots for f in root.rglob('*.jsonl')]
