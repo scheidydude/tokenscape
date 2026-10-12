@@ -40,3 +40,4 @@
 - Live site e2e (headless Chrome): real bundle 0.6s, charts render, unsafe zip rejected, only host scheidydude.github.io, no requests during analysis, no console errors; `.wasm` served as `application/wasm`
 - Linked site from README; Phase 1 complete
 - Open: PyPI release of Phase 0/1 core changes still deferred by user
+- Fixed model display names: `claude-sonnet-5` → Sonnet 5, `claude-opus-5-5` → Opus 5.5 (+ Opus 5 / Sonnet 5.5 so they don't mislabel); `tests/test_models.py`; 88/88 pass

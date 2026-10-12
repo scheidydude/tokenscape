@@ -45,5 +45,5 @@
 - `pyodide.unpackArchive(bytes, 'wheel')` installs the wheel incl. `.dist-info` → `importlib.metadata.version` works; no micropip/network
 - Pyodide in Node: don't set `"type": "module"` next to copied `pyodide.asm.js` (CommonJS); pass `Uint8Array`, not `Buffer`
 - Playwright doesn't report requests from the opaque-origin report iframe; verified Chart.js via rendered charts instead
-- Pre-existing: `models.display_name` has no mapping for `claude-sonnet-5` / `claude-opus-5-5` (shown raw in reports)
+- Fixed 2026-10-12: `models.display_name` now maps `claude-sonnet-5` / `claude-opus-5-5` (were shown raw)
 - Site size ~12MB (Pyodide wasm 8.6MB + stdlib 2.4MB); first load cached by browser after
