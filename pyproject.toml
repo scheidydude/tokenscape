@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "tokenscape"
-version = "0.3.1"
+version = "0.3.2"
 description = "AI token usage CLI and TUI (Claude Code + Codex)"
 readme = "README.md"
 license = { text = "Apache-2.0" }
@@ -33,6 +33,10 @@ tokenscape = "tokenscape.cli:app"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/tokenscape"]
+
+# The browser build (web/) is deployed to GitHub Pages, not shipped on PyPI.
+[tool.hatch.build.targets.sdist]
+exclude = ["/web"]
 
 [tool.ruff]
 src = ["src"]

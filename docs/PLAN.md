@@ -6,13 +6,13 @@ Source: [web-service-design.md](web-service-design.md)
 Let users get the tokenscape HTML report from a sessions zip without installing Python, starting with a browser-only app (no data leaves the machine). The CLI install stays unchanged: no new dependencies or behavior changes.
 
 ## Phases
-- [ ] Phase 0: CLI prerequisites (ships as a normal PyPI release)
+- [x] Phase 0: CLI prerequisites (ships as a normal PyPI release)
   - [x] Change 1: pass session file lists explicitly into `stream_turns` / `stream_sessions`; remove the `_iter_session_files` monkeypatch in `bundle.py:source_context`
   - [x] Change 2: harden zip reading — caps on uncompressed size, file count and compression ratio; non-`.jsonl` entries ignored; reject absolute/`..`/drive paths; read entries from the zip instead of `extractall`
   - [x] Tests: two bundles parsed in parallel give correct, separate results
   - [x] Tests: malicious zips (zip bomb, `../` path, size/count limits, invalid zip) are rejected; non-jsonl entries ignored
   - [x] Confirm CLI output unchanged on an existing bundle (before/after diff of `full-report`)
-  - [ ] ruff + pytest green; bump version, tag, release
+  - [x] ruff + pytest green; bump version, tag, release — v0.3.2
 - [x] Phase 1: browser-only app (Option A)
   - [x] Spike: load the core in Pyodide — works unchanged under Node + Pyodide 0.28.3; no blockers (core is pure stdlib, not even `rich`)
   - [x] Split a core import path that doesn't pull in CLI/TUI modules — already true; guarded by `tests/test_core_imports.py`
@@ -38,4 +38,4 @@ Let users get the tokenscape HTML report from a sessions zip without installing 
 - [x] Parallel / anytime: Change 5 — Codex support in `bundle` and `--source` (bundle follows `--tool`; `codex-sessions/` folder; web page has a Claude/Codex choice)
 
 ## Status
-Phase 0 done except release (deferred by user). Phase 1 done: live at https://scheidydude.github.io/tokenscape/. Phase 2 (metrics-only) only if team views are wanted.
+Phases 0 and 1 and change 5 done; released as v0.3.2. Phase 2 (metrics-only) / Phase 3 (full upload) only if a need appears.

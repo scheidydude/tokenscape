@@ -50,3 +50,4 @@
   - Real data: Claude `--source` md+html identical to previous commit; Codex bundle report identical to reading `~/.codex` directly (62 turns); browser: Codex 62 turns, wrong-tool message, switch back to Claude ok
   - 102 tests pass (with DeprecationWarning as error), ruff clean; README documents Codex bundles
 - Fixed Codex model names: per-turn `turn_context.model` (real data: GPT-6.1 Sol 50 turns, GPT-5.5 12 — was `gpt-6.` / GPT-5); added GPT-6 / 6.1 / 6.1 Sol display names; 3 new tests, 105 pass
+- Release v0.3.2: bumped `pyproject.toml`, `__init__.__version__` (was stale 0.1.0), `uv.lock`; excluded `web/` from sdist; local wheel tested on Codex bundle; tag pushed to trigger PyPI publish
